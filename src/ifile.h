@@ -25,13 +25,30 @@
 
 class IFile{
 public:
+	// open the file
+	// [Note]
+	// filepath type: protocl://ak:sk@domain/bucket/[dir]/object
 	virtual int open(mode_t mode, char filepath[PATH_MAX]) = 0;
+
+	// close the file witch you openned
 	virtual int close() = 0;
+
+	// remove the target file
 	virtual int remove(char filepath[PATH_MAX]) = 0;
+
+	// flush file cache, this operate will push the cache data to net
 	virtual int flush() = 0;
+
+	// Get file attributes
 	virtual int getstat(struct stat* stbuf) = 0;
+
+	// shrink or extend the size of a file to the specified size
 	virtual int truncate(off_t size) = 0;
+
+	// read from a file descriptor
 	virtual int read(char* buf, size_t size, off_t offset) = 0;
+
+	// write data to the file witch you have openned
 	virtual int write(const char* buf, size_t size, off_t offset) = 0;
 };
 

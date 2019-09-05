@@ -35,10 +35,10 @@ int S3Io::open(mode_t mode, char filepath[PATH_MAX]) {
 	{
 		std::vector<std::string> vecret = split_path(filepath);
 		vecret.push_back("umask=0000");						// allow other user access
-		vecret.push_back("use_cache=/home/pc/Desktop");		// set cache dir
+		//vecret.push_back("use_cache=/home/pc/Desktop");	// set cache dir
 		vecret.push_back("del_cache");						// allow delete cache
-		vecret.push_back("dbglevel=dbg");					// allow print dbg information
-		vecret.push_back("-f");
+		//vecret.push_back("dbglevel=dbg");					// allow print dbg information
+		//vecret.push_back("-f");
 
 		int vecsize = vecret.size();
 		if (vecsize == 0 ||
@@ -62,6 +62,7 @@ int S3Io::open(mode_t mode, char filepath[PATH_MAX]) {
 		memset(args[0], 0, strlen("multfs") + 1);
 		strcpy(args[0], "multfs");
 
+		// format s3fs parameters
 		for (int i = 0; i < vecsize; i++) {
 			args[i + 1] = new(std::nothrow) char[vecret[i].size() + 1];
 			if (args[i+1] == nullptr)
@@ -146,6 +147,7 @@ int S3Io::truncate(off_t size) {
 	return s3fs_truncate(object_name.c_str(), size);
 }
 
+// split path for formatting s3fs parameters
 std::vector<std::string> S3Io::split_path(std::string strpath) {
 	std::vector<std::string> vecret;
 
@@ -161,6 +163,7 @@ std::vector<std::string> S3Io::split_path(std::string strpath) {
 			break;
 		}
 
+		// get ak:sk
 		pos = strpath.find("@");
 		if (pos == std::string::npos) {
 			break;
@@ -172,6 +175,7 @@ std::vector<std::string> S3Io::split_path(std::string strpath) {
 		}
 		vecret.push_back("ak_sk=" + strask);
 
+		// get domain
 		strpath = strpath.substr(pos + strlen("@"), strpath.size() - pos - strlen("@"));
 		if (strpath.size() == 0) {
 			break;
@@ -188,6 +192,7 @@ std::vector<std::string> S3Io::split_path(std::string strpath) {
 		}
 		vecret.push_back("url=https://" + strurl);
 
+		// get bucket name
 		strpath = strpath.substr(pos + strlen("/"), strpath.size() - pos - strlen("/"));
 		if (strpath.size() == 0) {
 			break;
@@ -204,6 +209,7 @@ std::vector<std::string> S3Io::split_path(std::string strpath) {
 		}
 		vecret.push_back("bucket_name=" + strbucket);
 
+		// get the object and save it
 		strpath = strpath.substr(pos, strpath.size() - pos);
 		if (strpath.size() == 0) {
 			break;

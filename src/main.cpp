@@ -12,6 +12,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+/**
+* File: main.cpp
+* Description:
+*     recv file option command and execute it
+*/
 
 #include <cstdio>
 #include <string.h> 
@@ -34,13 +39,10 @@
 #include "./protocols/smb/smbio.h"
 #include "multifs_proto.h"
 
-/*
-*function: get_tag_fs
-*Description:
-*	Get the type of protocol from file path.
-*/
-IFile *get_tag_fs(char *path) {
-	IFile *pfile = nullptr;
+static int socket_child = 0;	// the socket for communicatting with parent
+static IFile *file = nullptr;	// the file handle 
+
+void get_tag_fs(char *path) {
 
 	do {
 		if (path == nullptr) {
@@ -61,20 +63,20 @@ IFile *get_tag_fs(char *path) {
 		}
 
 		if (strprotocol_type.compare("s3") == 0) {
-			pfile = new(std::nothrow) S3Io;
-			if (pfile == nullptr) {
+			file = new(std::nothrow) S3Io;
+			if (file == nullptr) {
 				break;
 			}
 		}
 		else if (strprotocol_type.compare("ftp") == 0) {
-			pfile = new(std::nothrow) FtpIo;
-			if (pfile == nullptr) {
+			file = new(std::nothrow) FtpIo;
+			if (file == nullptr) {
 				break;
 			}
 		}
 		else  if (strprotocol_type.compare("smb") == 0) {
-			pfile = new(std::nothrow) SmbIo;
-			if (pfile == nullptr) {
+			file = new(std::nothrow) SmbIo;
+			if (file == nullptr) {
 				break;
 			}
 		}
@@ -85,11 +87,9 @@ IFile *get_tag_fs(char *path) {
 		}
 
 	} while (false);
-
-	return pfile;
 }
 
-int dspcmd(int child, IFile **file, multifs_command_header *msg_header, unsigned char *data) {
+int dspcmd(multifs_command_header *msg_header, unsigned char *data) {
 	
 	int iret = -1;
 	multifs_command_header *msg_out = nullptr;
@@ -108,7 +108,7 @@ int dspcmd(int child, IFile **file, multifs_command_header *msg_header, unsigned
 
 		if (msg_header->command != NFS_COMMAND_OPEN &&
 			msg_header->command != NFS_COMMAND_REMOVE &&
-			(*file) == nullptr) {
+			file == nullptr) {
 		}
 
 		msg_out = msg_header;
@@ -117,14 +117,14 @@ int dspcmd(int child, IFile **file, multifs_command_header *msg_header, unsigned
 		switch (msg_header->command) {
 		case NFS_COMMAND_OPEN: {
 			multifs_command_open_in *cmd_open = (multifs_command_open_in*)data;
-			(*file) = get_tag_fs(cmd_open->filepath);
-			if ((*file) == nullptr) {
+			get_tag_fs(cmd_open->filepath);
+			if (file == nullptr) {
 				printf("unkunow protocol!\n");
 				file_ret == -1;
 				break;
 			}
 
-			msg_out->error = (*file)->open(cmd_open->mode, cmd_open->filepath);
+			msg_out->error = file->open(cmd_open->mode, cmd_open->filepath);
 			msg_out->payload = 0;
 
 			break;
@@ -132,7 +132,7 @@ int dspcmd(int child, IFile **file, multifs_command_header *msg_header, unsigned
 
 		case NFS_COMMAND_CLOSE: {
 			printf("get close command!\n");
-			msg_out->error = (*file)->close();
+			msg_out->error = file->close();
 			msg_out->payload = 0;
 			printf("close option success!\n");
 
@@ -142,14 +142,14 @@ int dspcmd(int child, IFile **file, multifs_command_header *msg_header, unsigned
 		case NFS_COMMAND_REMOVE: {
 			printf("get remove command!\n");
 			multifs_command_remove_in *cmd_remove = (multifs_command_remove_in*)data;
-			(*file) = get_tag_fs(cmd_remove->filepath);
-			if ((*file) == nullptr) {
+			get_tag_fs(cmd_remove->filepath);
+			if (file == nullptr) {
 				printf("unkunow protocol!\n");
 				file_ret == -1;
 				break;
 			}
 
-			msg_out->error = (*file)->remove(cmd_remove->filepath);
+			msg_out->error = file->remove(cmd_remove->filepath);
 			msg_out->payload = 0;
 
 			break;
@@ -163,7 +163,7 @@ int dspcmd(int child, IFile **file, multifs_command_header *msg_header, unsigned
 				break;
 			}
 			memset(read_buffer, 0, cmd_read->size + 1);
-			int read_len = (*file)->read((char*)read_buffer, cmd_read->size, cmd_read->offset);
+			int read_len = file->read((char*)read_buffer, cmd_read->size, cmd_read->offset);
 			if (read_len != 0) {
 				printf("get data len %d %d %s\n", cmd_read->size, read_len, read_buffer);
 				int len = cmd_read->size + sizeof(multifs_command_header);
@@ -193,14 +193,14 @@ int dspcmd(int child, IFile **file, multifs_command_header *msg_header, unsigned
 		case NFS_COMMAND_WRITE: {
 			printf("get write command!\n");
 			multifs_command_write_in *cmd_write = (multifs_command_write_in*)data;
-			msg_header->error = (*file)->write(cmd_write->buf, cmd_write->size, cmd_write->offset);
+			msg_header->error = file->write(cmd_write->buf, cmd_write->size, cmd_write->offset);
 			msg_out->payload = 0;
 
 			break;
 		}
 
 		case NFS_COMMAND_FLUSH: {
-			msg_out->error = (*file)->flush();
+			msg_out->error = file->flush();
 			msg_out->payload = 0;
 
 			break;
@@ -208,7 +208,7 @@ int dspcmd(int child, IFile **file, multifs_command_header *msg_header, unsigned
 
 		case NTS_COMMAND_TRUNCATE: {
 			multifs_command_truncate_in *cmd_truncat = (multifs_command_truncate_in*)data;
-			msg_out->error = (*file)->truncate(cmd_truncat->size);
+			msg_out->error = file->truncate(cmd_truncat->size);
 			msg_out->payload = 0;
 
 			break;
@@ -216,7 +216,7 @@ int dspcmd(int child, IFile **file, multifs_command_header *msg_header, unsigned
 
 		case NFS_COMMAND_STAT: { 
 			multifs_command_stat_out stat = { 0 };
-			msg_header->error = (*file)->getstat(&stat.stbuf);
+			msg_header->error = file->getstat(&stat.stbuf);
 
 			int len = sizeof(multifs_command_header) + sizeof(multifs_command_stat_out);
 			unsigned char *p = new(std::nothrow) unsigned char[len + 1];
@@ -243,7 +243,7 @@ int dspcmd(int child, IFile **file, multifs_command_header *msg_header, unsigned
 	} while (false);
 
 	msg_out->mode = OP_ANSWER;
-	iret = write(child, msg_out, sizeof(multifs_command_header) + msg_out->payload);
+	iret = write(socket_child, msg_out, sizeof(multifs_command_header) + msg_out->payload);
 	if (iret == -1)	{
 		printf("write pipe error!\n");
 	}
@@ -269,13 +269,12 @@ int main(int argc, char *argv[])
 			break;
 		}
 
-		int child = atoi(argv[1]);
+		socket_child = atoi(argv[1]);
 
-		IFile *pfile = nullptr;
 		while (true) {
 			// read header
 			multifs_command_header msg_header = { 0 };
-			int read_bytes = read(child, &msg_header, sizeof(multifs_command_header));
+			int read_bytes = read(socket_child, &msg_header, sizeof(multifs_command_header));
 			if (read_bytes == -1) {
 				printf("read pipe error!\n");
 				break;
@@ -298,7 +297,7 @@ int main(int argc, char *argv[])
 				}
 
 				memset(pbuffer, 0, msg_header.payload + 1);
-				read_bytes = read(child, pbuffer, msg_header.payload);
+				read_bytes = read(socket_child, pbuffer, msg_header.payload);
 				if (read_bytes == -1) {
 					delete pbuffer;
 					pbuffer = nullptr;
@@ -307,7 +306,7 @@ int main(int argc, char *argv[])
 			}
 
 			// 
-			iret = dspcmd(child, &pfile, &msg_header, pbuffer);
+			iret = dspcmd(&msg_header, pbuffer);
 			if (pbuffer != nullptr) {
 				delete pbuffer;
 				pbuffer = nullptr;
@@ -324,9 +323,9 @@ int main(int argc, char *argv[])
 			}
 		}
 
-		if (pfile != nullptr) {
-			delete pfile;
-			pfile = nullptr;
+		if (file != nullptr) {
+			delete file;
+			file = nullptr;
 		}
 	} while (false);
 
