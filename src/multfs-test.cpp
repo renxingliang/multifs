@@ -215,10 +215,14 @@ int test_read(off_t offset, char* data, size_t size) {
 
 		readlen = read(socket_par, data, cmd_header.payload);
 		if (readlen == -1) {
+// 			delete data;
+// 			data = nullptr;
 			break;
 		}
 		printf("recv from child thread :%d %d %s\n", cmd_header.payload, readlen, data);
-		iret = 0;
+// 		delete data;
+// 		data = nullptr;
+		iret = cmd_header.payload;
 	} while (false);
 
 	return iret;
@@ -263,7 +267,7 @@ int test_write(off_t offset, char *data, size_t size) {
 
 		if (cmd_header.error == 0) {
 			printf("write file success!\n");
-			iret = 0;
+			iret = cmd_header.error;
 		}
 	} while (false);
 

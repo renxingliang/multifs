@@ -171,6 +171,7 @@ int dspcmd(multifs_command_header *msg_header, unsigned char *data) {
 				if (p != nullptr) {
 					memset(p, 0, len + 1);
 					msg_header->payload = read_len;
+					msg_header->error = read_len;
 					memcpy(p, msg_header, sizeof(multifs_command_header));
 					memcpy(p + sizeof(multifs_command_header), read_buffer, read_len);
 
@@ -178,6 +179,7 @@ int dspcmd(multifs_command_header *msg_header, unsigned char *data) {
 				}
 			}
 			else {
+				file_ret == -1;
 				msg_out = nullptr;
 			}
 
