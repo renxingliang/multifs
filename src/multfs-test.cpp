@@ -399,7 +399,6 @@ int test_remove(char *szpath) {
 	return iret;
 }
 
-
 int main() {
 	int iret = 0;
 	int fd[2] = { 0 };
@@ -459,4 +458,8 @@ int main() {
 	} while (false);
 
 	return iret;
+}
+
+int init() {
+	return main();
 }
