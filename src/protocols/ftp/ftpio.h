@@ -14,6 +14,7 @@
 
 
 #pragma once
+#include <string>
 
 #include "../../ifile.h"
 #include <stdint.h>
@@ -30,4 +31,9 @@ public:
 	virtual int truncate(off_t size);
 	virtual int read(char* buf, size_t size, off_t offset);
 	virtual int write(const char* buf, size_t size, off_t offset);
+	virtual int config(size_t single_cache_size_n, char *cachepath, char *debug_mark);
+	
+private:
+	size_t single_cache_size_m;
+	std::string cachepath;
 };

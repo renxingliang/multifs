@@ -2021,29 +2021,23 @@ bool FdManager::SetCheckCacheDirExist(bool is_check)
 
 bool FdManager::CheckCacheDirExist()
 {
-	printf("CheckCacheDirExist0\n");
 	if (!FdManager::check_cache_dir_exist) {
-		printf("CheckCacheDirExist1\n");
 		return true;
 	}
 	if (FdManager::cache_dir.empty()) {
-		printf("CheckCacheDirExist2\n");
 		return true;
 	}
 	// check the directory
 	struct stat st;
 	if (0 != stat(cache_dir.c_str(), &st)) {
 		S3FS_PRN_ERR("could not access to cache directory(%s) by errno(%d).", cache_dir.c_str(), errno);
-		printf("CheckCacheDirExist00\n");
 		return false;
 	}
 	if (!S_ISDIR(st.st_mode)) {
 		S3FS_PRN_ERR("the cache directory(%s) is not directory.", cache_dir.c_str());
-		printf("CheckCacheDirExist11\n");
 		return false;
 	}
 
-	printf("CheckCacheDirExist3\n");
 	return true;
 }
 

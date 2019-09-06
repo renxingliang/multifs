@@ -44,6 +44,7 @@ typedef enum
 	NFS_COMMAND_FLUSH,
 	NTS_COMMAND_TRUNCATE,
 	NFS_COMMAND_STAT,
+	NFS_COMMAND_CONFIG,
 } multifs_command_e;
 
 typedef enum
@@ -96,6 +97,13 @@ typedef struct _multifs_command_truncate_in {
 typedef struct _multifs_command_stat_out {
 	struct stat stbuf;
 } multifs_command_stat_out;
+
+typedef struct _multifs_command_config_in {
+	size_t single_cache_size_m;
+	char debug_mark[PATH_MAX];
+	char cachepath[PATH_MAX];
+} multifs_command_config_in;
+
 #pragma pack()
 
 #ifdef __cplusplus

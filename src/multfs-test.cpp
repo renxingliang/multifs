@@ -48,6 +48,7 @@ extern "C" {
 	int test_stat();
 	int test_write(off_t offset, char *data, size_t size);
 	int test_truncate(size_t size);
+	int config(size_t single_cache_size_n, char *cachepath, char *debug_mark);
 }
 
 int test_open(char *szpath, mode_t mode) {
@@ -378,6 +379,58 @@ int test_remove(char *szpath) {
 		}
 
 		iret = cmd_header.error;
+	} while (false);
+
+	return iret;
+}
+
+int config(size_t single_cache_size_n, char *cachepath, char *debug_mark) {
+	int iret = -1;
+
+	do {
+		if (cachepath == nullptr) {
+			printf("path invalid!\n");
+			break;
+		}
+
+		// test open
+		int len = sizeof(multifs_command_header) + sizeof(multifs_command_config_in);
+		unsigned char* p = new unsigned char[len + 1];
+		if (p == nullptr) {
+			break;
+		}
+		std::auto_ptr<unsigned char> tmp(p);
+		memset(p, 0, len + 1);
+
+		multifs_command_header *pmsg_header = (multifs_command_header*)p;
+		pmsg_header->command = NFS_COMMAND_CONFIG;
+		pmsg_header->magic = MULTIFS_HEADER_MAGIC;
+		pmsg_header->mode = OP_REQUEST;
+		pmsg_header->version = MULTIFS_VERSION;
+		pmsg_header->sequence = 1;
+		pmsg_header->payload = sizeof(multifs_command_config_in);
+
+		multifs_command_config_in *ppayload = (multifs_command_config_in*)(p + sizeof(multifs_command_header));
+		ppayload->single_cache_size_m = single_cache_size_n;
+		strcpy(ppayload->cachepath, cachepath);
+		strcpy(ppayload->debug_mark, debug_mark);
+		ssize_t bytes = write(socket_par, p, len);
+		if (bytes == -1) {
+			printf("open error, send data fail!\n");
+			break;
+		}
+
+		multifs_command_header cmd_header = { 0 };
+		int readlen = read(socket_par, &cmd_header, sizeof(multifs_command_header));
+		if (readlen == -1) {
+			printf("config request fail!\n");
+			break;
+		}
+		else {
+			if (cmd_header.command == NFS_COMMAND_OPEN) {
+				iret = cmd_header.error;
+			}
+		}
 	} while (false);
 
 	return iret;

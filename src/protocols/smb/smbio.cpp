@@ -61,3 +61,11 @@ int SmbIo::write(const char * buf, size_t size, off_t offset)
 {
 	return 0;
 }
+
+int SmbIo::config(size_t single_cache_size_m, char *pcachepath, char *debug_mark) {
+	single_cache_size_m = single_cache_size_m;
+	if (pcachepath != nullptr)
+	{
+		cachepath = pcachepath;
+	}
+}

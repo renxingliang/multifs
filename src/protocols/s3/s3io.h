@@ -37,14 +37,17 @@ public:
 	virtual int truncate(off_t size);
 	virtual int read(char* buf, size_t size, off_t offset);
 	virtual int write(const char* buf, size_t size, off_t offset);
+	virtual int config(size_t single_cache_size_n, char *cachepath, char *debug_mark);
 
 private:
 	std::vector<std::string> split_path(std::string path);
-	std::string crete_cache_dir();
 
 private:
 	fuse_file_info file_info;	// opened file infor
 	char file_path[PATH_MAX];	// saved full file path
 	std::string object_name;	// saved object name
 	fuse_conn_info conn_info;	//
+	size_t single_cache_size_m;
+	std::string cachepath;
+	std::string debug_mark;
 };

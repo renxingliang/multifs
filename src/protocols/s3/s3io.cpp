@@ -29,34 +29,6 @@ S3Io::S3Io(){
 S3Io::~S3Io(){
 }
 
-std::string crete_cache_dir() {
-	std::string strdir;
-
-	do 
-	{
-		char buf[PATH_MAX] = { 0 };
-		getcwd(buf, PATH_MAX);
-		std::string curdir = buf;
-		curdir += "/cache";
-
-		bool create_dir = false;
-		if (opendir(curdir.c_str()) == nullptr) {
-			if (mkdir(curdir.c_str(), 777)) {
-				create_dir = true;
-			}
-		}
-		else {
-			create_dir = true;
-		}
-
-		if (create_dir) {
-			strdir = "use_cache=" + curdir;
-		}
-	} while (false);
-
-	return strdir;
-}
-
 int S3Io::open(mode_t mode, char filepath[PATH_MAX]) {
 	int iret = -1;
 	char **args = nullptr;
@@ -65,20 +37,21 @@ int S3Io::open(mode_t mode, char filepath[PATH_MAX]) {
 	{
 		std::vector<std::string> vecret = split_path(filepath);
 		vecret.push_back("umask=0000");						// allow other user access
-		vecret.push_back("ensure_diskfree=1024");
 		vecret.push_back("check_cache_dir_exist");
 		vecret.push_back("del_cache");						// allow delete cache
-		//vecret.push_back("dbglevel=dbg");					// allow print dbg information
-		//vecret.push_back("-f");
+		vecret.push_back("-f");
 
-		// 这里出现权限问题，到公司的机器测试一下，看家里机器的用户就是root权限
-// 		std::string strdir = crete_cache_dir();
-// 		if (strdir.size() != 0)
-// 		{
-// 			vecret.push_back(strdir);
-// 		}
+		if (debug_mark.size() != 0) {
+			vecret.push_back(std::string("dbglevel=") + debug_mark);					// allow print dbg information
+		}
 
-		vecret.push_back("use_cache=./tmp");
+		if (cachepath.size() != 0) {
+			vecret.push_back(std::string("use_cache=") + cachepath);
+		}
+
+		if (single_cache_size_m != 0) { 
+			vecret.push_back(std::string("ensure_diskfree=") + std::to_string(single_cache_size_m));
+		}
 
 		int vecsize = vecret.size();
 		if (vecsize == 0 ||
@@ -185,6 +158,24 @@ int S3Io::getstat(struct stat* stbuf) {
 
 int S3Io::truncate(off_t size) {
 	return s3fs_truncate(object_name.c_str(), size);
+}
+
+int S3Io::config(size_t single_cache_size_m, char *pcachepath, char *debugmark) {
+
+	printf("set config\n");
+	single_cache_size_m = single_cache_size_m;
+	if (pcachepath != nullptr) {
+		printf("get cache path %s\n", pcachepath);
+		cachepath = pcachepath;
+	}
+
+	if (debugmark != nullptr) {
+		printf("get debug mark %s\n", debugmark);
+		debug_mark = debugmark;
+	}
+	printf("set config success\n");
+
+	return 0;
 }
 
 // split path for formatting s3fs parameters

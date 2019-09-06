@@ -41,6 +41,9 @@
 
 static int socket_child = 0;	// the socket for communicatting with parent
 static IFile *file = nullptr;	// the file handle 
+static size_t single_cache_size_m = 0;
+static char debug_mark[PATH_MAX] = { 0 };
+static char cachepath[PATH_MAX] = { 0 };
 
 void get_tag_fs(char *path) {
 
@@ -52,13 +55,11 @@ void get_tag_fs(char *path) {
 		std::string strpath = path;
 		int pos = strpath.find(":");
 		if (pos == std::string::npos) {
-			printf("path invalid!\n");
 			break;
 		}
 
 		std::string strprotocol_type = strpath.substr(0, pos);
 		if (strprotocol_type.size() == 0) {
-			printf("path invalid!\n");
 			break;
 		}
 
@@ -80,12 +81,6 @@ void get_tag_fs(char *path) {
 				break;
 			}
 		}
-		else {
-
-			printf("unkunow protocol!\n");
-			break;
-		}
-
 	} while (false);
 }
 
@@ -116,33 +111,28 @@ int dspcmd(multifs_command_header *msg_header, unsigned char *data) {
 			multifs_command_open_in *cmd_open = (multifs_command_open_in*)data;
 			get_tag_fs(cmd_open->filepath);
 			if (file == nullptr) {
-				printf("unkunow protocol!\n");
 				msg_out->error == -1;
 				break;
 			}
 
+			file->config(single_cache_size_m, cachepath, debug_mark);
 			msg_out->error = file->open(cmd_open->mode, cmd_open->filepath);
-			printf("multfs:open %d\n", msg_out->error);
 			msg_out->payload = 0;
 
 			break;
 		}
 
 		case NFS_COMMAND_CLOSE: {
-			printf("get close command!\n");
 			msg_out->error = file->close();
 			msg_out->payload = 0;
-			printf("close option success!\n");
 
 			break;
 		}
 
 		case NFS_COMMAND_REMOVE: {
-			printf("get remove command!\n");
 			multifs_command_remove_in *cmd_remove = (multifs_command_remove_in*)data;
 			get_tag_fs(cmd_remove->filepath);
 			if (file == nullptr) {
-				printf("unkunow protocol!\n");
 				msg_out->error == -1;
 				break;
 			}
@@ -154,16 +144,14 @@ int dspcmd(multifs_command_header *msg_header, unsigned char *data) {
 		}
 
 		case NFS_COMMAND_READ: {
-			printf("get read command!\n");
 			multifs_command_read_in *cmd_read = (multifs_command_read_in*)data;
 			unsigned char* read_buffer = new(std::nothrow) unsigned char[cmd_read->size + 1];
-			if (read_buffer == nullptr){
+			if (read_buffer == nullptr) {
 				break;
 			}
 			memset(read_buffer, 0, cmd_read->size + 1);
 			int read_len = file->read((char*)read_buffer, cmd_read->size, cmd_read->offset);
 			if (read_len != 0) {
-				printf("get data len %d %d %s\n", cmd_read->size, read_len, read_buffer);
 				int len = cmd_read->size + sizeof(multifs_command_header);
 				unsigned char* p = new(std::nothrow) unsigned char[len + 1];
 				if (p != nullptr) {
@@ -184,14 +172,11 @@ int dspcmd(multifs_command_header *msg_header, unsigned char *data) {
 			delete[] read_buffer;
 			read_buffer = nullptr;
 
-			printf("read ok!\n");
-
 			break;
 		}
 
-		// call flush after write
+							   // call flush after write
 		case NFS_COMMAND_WRITE: {
-			printf("get write command!\n");
 			multifs_command_write_in *cmd_write = (multifs_command_write_in*)data;
 			msg_header->error = file->write(cmd_write->buf, cmd_write->size, cmd_write->offset);
 			msg_out->payload = 0;
@@ -214,7 +199,7 @@ int dspcmd(multifs_command_header *msg_header, unsigned char *data) {
 			break;
 		}
 
-		case NFS_COMMAND_STAT: { 
+		case NFS_COMMAND_STAT: {
 			multifs_command_stat_out stat = { 0 };
 			msg_header->error = file->getstat(&stat.stbuf);
 
@@ -230,6 +215,14 @@ int dspcmd(multifs_command_header *msg_header, unsigned char *data) {
 			memcpy(p + sizeof(multifs_command_header), &stat, sizeof(multifs_command_stat_out));
 			msg_out = (multifs_command_header*)p;
 
+			break;
+		}
+		case NFS_COMMAND_CONFIG: {
+			multifs_command_config_in *config = (multifs_command_config_in*)data;
+			single_cache_size_m = config->single_cache_size_m;
+			strcpy(debug_mark, config->debug_mark);
+			strcpy(cachepath, config->cachepath);
+			msg_out->payload = 0;
 			break;
 		}
 		}
@@ -256,7 +249,6 @@ int main(int argc, char *argv[])
 	int iret = 0;
 	
 	do {
-		printf("multfs process running!\n");
 		if (argc == 1) {
 			printf("parameters error !\n");
 			break;
@@ -272,7 +264,6 @@ int main(int argc, char *argv[])
 				printf("read pipe error!\n");
 				break;
 			}
-			printf("read pipe success! data len: %d\n", read_bytes);
 
 			// check header
 			if (msg_header.version != MULTIFS_VERSION ||
