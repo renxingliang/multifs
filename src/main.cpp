@@ -90,8 +90,6 @@ void get_tag_fs(char *path) {
 }
 
 int dspcmd(multifs_command_header *msg_header, unsigned char *data) {
-	
-	int iret = -1;
 	multifs_command_header *msg_out = nullptr;
 
 	do {
@@ -113,18 +111,18 @@ int dspcmd(multifs_command_header *msg_header, unsigned char *data) {
 
 		msg_out = msg_header;
 
-		int file_ret = 0;
 		switch (msg_header->command) {
 		case NFS_COMMAND_OPEN: {
 			multifs_command_open_in *cmd_open = (multifs_command_open_in*)data;
 			get_tag_fs(cmd_open->filepath);
 			if (file == nullptr) {
 				printf("unkunow protocol!\n");
-				file_ret == -1;
+				msg_out->error == -1;
 				break;
 			}
 
 			msg_out->error = file->open(cmd_open->mode, cmd_open->filepath);
+			printf("multfs:open %d\n", msg_out->error);
 			msg_out->payload = 0;
 
 			break;
@@ -145,7 +143,7 @@ int dspcmd(multifs_command_header *msg_header, unsigned char *data) {
 			get_tag_fs(cmd_remove->filepath);
 			if (file == nullptr) {
 				printf("unkunow protocol!\n");
-				file_ret == -1;
+				msg_out->error == -1;
 				break;
 			}
 
@@ -179,7 +177,7 @@ int dspcmd(multifs_command_header *msg_header, unsigned char *data) {
 				}
 			}
 			else {
-				file_ret == -1;
+				msg_out->error == -1;
 				msg_out = nullptr;
 			}
 
@@ -235,17 +233,10 @@ int dspcmd(multifs_command_header *msg_header, unsigned char *data) {
 			break;
 		}
 		}
-
-		msg_header->error = file_ret;
-		if (file_ret == -1) {
-			break;
-		}
-
-		iret = 0;
 	} while (false);
 
 	msg_out->mode = OP_ANSWER;
-	iret = write(socket_child, msg_out, sizeof(multifs_command_header) + msg_out->payload);
+	int iret = write(socket_child, msg_out, sizeof(multifs_command_header) + msg_out->payload);
 	if (iret == -1)	{
 		printf("write pipe error!\n");
 	}

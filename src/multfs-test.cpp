@@ -94,10 +94,8 @@ int test_open(char *szpath, mode_t mode) {
 			break;
 		}
 		else {
-			if (cmd_header.command == NFS_COMMAND_OPEN &&
-				cmd_header.error == 0) {
-				printf("open request success!\n");
-				iret = 0;
+			if (cmd_header.command == NFS_COMMAND_OPEN) {
+				iret = cmd_header.error;
 			}
 		}
 	} while (false);
@@ -128,10 +126,8 @@ int test_close() {
 			break;
 		}
 
-		if (cmd_header_respone.error == 0) {
-			printf("close success!\n");
-			iret = 0;
-		}
+
+		iret = cmd_header_respone.error;
 	} while (false);
 
 	return iret;
@@ -160,10 +156,7 @@ int test_flush() {
 			break;
 		}
 
-		if (cmd_header_respone.error == 0) {
-			printf("write file success!\n");
-			iret = 0;
-		}
+		iret = cmd_header_respone.error;
 	} while (false);
 
 	return iret;
@@ -265,10 +258,7 @@ int test_write(off_t offset, char *data, size_t size) {
 			break;
 		}
 
-		if (cmd_header.error == 0) {
-			printf("write file success!\n");
-			iret = cmd_header.error;
-		}
+		iret = cmd_header.error;
 	} while (false);
 
 	return iret;
@@ -307,10 +297,7 @@ int test_truncate(size_t size) {
 			break;
 		}
 
-		if (cmd_header.error == 0) {
-			printf("write file success!\n");
-			iret = 0;
-		}
+		iret = cmd_header.error;
 	} while (false);
 
 	return iret;
@@ -339,10 +326,8 @@ int test_stat() {
 			break;
 		}
 
-		if (cmd_header.error == 0) {
-			printf("write file success!\n");
-			iret = 0;
-		}
+		iret = cmd_header.error;
+		printf("test_stat %d\n", iret);
 
 		multifs_command_stat_out stat_out = { 0 };
 		readlen = read(socket_par, &stat_out, sizeof(multifs_command_stat_out));
@@ -353,8 +338,6 @@ int test_stat() {
 		printf("atim %s\n", ctime(&stat_out.stbuf.st_atime));
 		printf("mtim %s\n", ctime(&stat_out.stbuf.st_mtime));
 		printf("ctim %s\n", ctime(&stat_out.stbuf.st_ctime));
-
-		iret = 0;
 	} while (false);
 
 	return iret;
@@ -394,10 +377,7 @@ int test_remove(char *szpath) {
 			break;
 		}
 
-		if (cmd_header.error == 0) {
-			printf("remove option success!\n");
-			iret = 0;
-		}
+		iret = cmd_header.error;
 	} while (false);
 
 	return iret;
@@ -462,8 +442,4 @@ int main() {
 	} while (false);
 
 	return iret;
-}
-
-int init() {
-	return main();
 }

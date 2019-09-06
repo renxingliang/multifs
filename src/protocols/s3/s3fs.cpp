@@ -872,15 +872,19 @@ int s3fs_getattr(const char* _path, struct stat* stbuf)
 
 	S3FS_PRN_INFO("[path=%s]", path);
 
+	printf("s3fs_getattr \n");
 	// check parent directory attribute.
 	if (0 != (result = check_parent_object_access(path, X_OK))) {
+		printf("s3fs_getattr %d\n", result);
 		return result;
 	}
 
+	printf("s3fs_getattr %d\n", result);
 	if (0 != (result = check_object_access(path, F_OK, stbuf))) {
 		return result;
 	}
 
+	printf("s3fs_getattr %d\n", result);
 	// If has already opened fd, the st_size should be instead.
 	// (See: Issue 241)
 	if (stbuf) {
@@ -2190,8 +2194,17 @@ int s3fs_open(const char* _path, struct fuse_file_info* fi, mode_t mode)
 
 	st.st_mode = mode;
 	result = check_object_access(path, mask, &st);
+	printf("check_object_access %d\n", result);
 	if (-ENOENT == result) {
+		// If there is not a target file, this function returns -ENOENT.
+		// You can return error
+		if (mode == O_RDONLY)
+		{
+			return result;
+		}
+
 		if (0 != (result = check_parent_object_access(path, W_OK))) {
+
 			return result;
 		}
 	}

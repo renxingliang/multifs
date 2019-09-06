@@ -40,6 +40,7 @@ public:
 
 private:
 	std::vector<std::string> split_path(std::string path);
+	std::string crete_cache_dir();
 
 private:
 	fuse_file_info file_info;	// opened file infor

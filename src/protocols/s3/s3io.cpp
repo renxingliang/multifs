@@ -14,6 +14,8 @@
 
 
 #include <cstdio>
+#include <unistd.h>
+#include <dirent.h>
 #include "s3io.h"
 
 #include <string.h>
@@ -27,6 +29,34 @@ S3Io::S3Io(){
 S3Io::~S3Io(){
 }
 
+std::string crete_cache_dir() {
+	std::string strdir;
+
+	do 
+	{
+		char buf[PATH_MAX] = { 0 };
+		getcwd(buf, PATH_MAX);
+		std::string curdir = buf;
+		curdir += "/cache";
+
+		bool create_dir = false;
+		if (opendir(curdir.c_str()) == nullptr) {
+			if (mkdir(curdir.c_str(), 777)) {
+				create_dir = true;
+			}
+		}
+		else {
+			create_dir = true;
+		}
+
+		if (create_dir) {
+			strdir = "use_cache=" + curdir;
+		}
+	} while (false);
+
+	return strdir;
+}
+
 int S3Io::open(mode_t mode, char filepath[PATH_MAX]) {
 	int iret = -1;
 	char **args = nullptr;
@@ -35,10 +65,20 @@ int S3Io::open(mode_t mode, char filepath[PATH_MAX]) {
 	{
 		std::vector<std::string> vecret = split_path(filepath);
 		vecret.push_back("umask=0000");						// allow other user access
-		//vecret.push_back("use_cache=/home/pc/Desktop");	// set cache dir
+		vecret.push_back("ensure_diskfree=1024");
+		vecret.push_back("check_cache_dir_exist");
 		vecret.push_back("del_cache");						// allow delete cache
 		//vecret.push_back("dbglevel=dbg");					// allow print dbg information
 		//vecret.push_back("-f");
+
+		// 这里出现权限问题，到公司的机器测试一下，看家里机器的用户就是root权限
+// 		std::string strdir = crete_cache_dir();
+// 		if (strdir.size() != 0)
+// 		{
+// 			vecret.push_back(strdir);
+// 		}
+
+		vecret.push_back("use_cache=./tmp");
 
 		int vecsize = vecret.size();
 		if (vecsize == 0 ||
@@ -81,7 +121,7 @@ int S3Io::open(mode_t mode, char filepath[PATH_MAX]) {
 		s3fs_init(&conn_info);
 
 		iret = s3fs_open(object_name.c_str(), &file_info, mode);
-		if (iret == -1)
+		if (iret != 0)
 		{
 			break;
 		}
