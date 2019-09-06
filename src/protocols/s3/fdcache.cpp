@@ -1993,7 +1993,6 @@ bool FdManager::MakeCachePath(const char* path, string& cache_path, bool is_crea
 
 bool FdManager::CheckCacheTopDir()
 {
-	printf("cache dir : %s\n", FdManager::cache_dir.c_str());
 	if (FdManager::cache_dir.empty()) {
 		return true;
 	}

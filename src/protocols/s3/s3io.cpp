@@ -170,20 +170,16 @@ int S3Io::truncate(off_t size) {
 
 int S3Io::config_cache(size_t single_cache_size_m, char *pcachepath) {
 
-	printf("set config\n");
 	single_cache_size_m = single_cache_size_m;
 	if (pcachepath != nullptr) {
-		printf("get cache path %s\n", pcachepath);
 		cachepath = pcachepath;
 	}
 
-	printf("set config success\n");
 	return 0;
 }
 
 int S3Io::log_level(char *log_mark) {
 	if (log_mark != nullptr) {
-		printf("get log %s\n", log_mark);
 		debug_mark = log_mark;
 	}
 
@@ -198,7 +194,6 @@ std::vector<std::string> S3Io::split_path(std::string strpath) {
 	{
 		std::string name = get_current_name();
 		if (name.size() != 0){
-			printf("current process name: %s\n", name.c_str());
 			vecret.push_back(name);
 		}
 

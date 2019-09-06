@@ -115,7 +115,6 @@ int dspcmd(multifs_command_header *msg_header, unsigned char *data) {
 				break;
 			}
 
-			printf("NFS_COMMAND_OPEN %d %s %s\n", single_cache_size_m, cachepath, debug_mark);
 			file->config_cache(single_cache_size_m, cachepath);
 			file->log_level(debug_mark);
 			msg_out->error = file->open(cmd_open->mode, cmd_open->filepath);
@@ -224,7 +223,6 @@ int dspcmd(multifs_command_header *msg_header, unsigned char *data) {
 			single_cache_size_m = config->single_cache_size_m;
 			strcpy(cachepath, config->cachepath);
 			msg_out->payload = 0;
-			printf("NFS_COMMAND_CONFIG: %d %s\n", single_cache_size_m, cachepath);
 			break;
 		}
 
@@ -232,7 +230,6 @@ int dspcmd(multifs_command_header *msg_header, unsigned char *data) {
 			multifs_command_log_in *log = (multifs_command_log_in *)data;
 			strcpy(debug_mark, log->debug_mark);
 			msg_out->payload = 0;
-			printf("get commang log %s\n", debug_mark);
 			break;
 		}
 		}

@@ -716,7 +716,6 @@ bool check_exist_dir_permission(const char* dirpath)
 		}
 	}
 
-	printf("check_exist_dir_permission\n");
 	return true;
 }
 

@@ -2190,7 +2190,6 @@ int s3fs_open(const char* _path, struct fuse_file_info* fi, mode_t mode)
 
 	st.st_mode = mode;
 	result = check_object_access(path, mask, &st);
-	printf("check_object_access %d\n", result);
 	if (-ENOENT == result) {
 		// If there is not a target file, this function returns -ENOENT.
 		// You can return error
@@ -5264,7 +5263,6 @@ int init(int argc, char* argv[])
 	// should have been set
 	// 将这里改写为一个以循环，调用my_fuse_opt_proc， 每次传入一个参数。
 	for (int i = 1; i < argc; i++) {
-		printf("weses %s\n", argv[i]);
 		if (my_fuse_opt_proc(argv[i])) {
 			S3fsCurl::DestroyS3fsCurl();
 			s3fs_destroy_global_ssl();
@@ -5307,7 +5305,6 @@ int init(int argc, char* argv[])
 	}
 
 	// check bucket name for illegal characters
-	printf("bucket_name:%s\n", bucket.c_str());
 	found = bucket.find_first_of("/:\\;!@#$%^&*?|+=");
 	if (found != string::npos) {
 		S3FS_PRN_EXIT("BUCKET %s -- bucket name contains an illegal character.", bucket.c_str());
@@ -5467,7 +5464,6 @@ int uninit() {
 	xmlCleanupParser();
 	S3FS_MALLOCTRIM(0);
 
-	printf("begin s3fs_destory\n");
 	s3fs_destroy(NULL);
 
 	return EXIT_SUCCESS;
