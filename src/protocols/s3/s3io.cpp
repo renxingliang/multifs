@@ -55,33 +55,33 @@ std::string S3Io::get_current_name() {
 int S3Io::open(mode_t mode, char filepath[PATH_MAX]) {
 	int iret = -1;
 	char **args = nullptr;
+	int vecsize = 0;
 
 	do
 	{
 		std::vector<std::string> vecret = split_path(filepath);
 		vecret.push_back("umask=0000");						// allow other user access
-		vecret.push_back("check_cache_dir_exist");
+		vecret.push_back("check_cache_dir_exist");			// check cache dir before operate
 		vecret.push_back("del_cache");						// allow delete cache
 		vecret.push_back("-f");
 		vecret.push_back(cachepath.size() != 0 ? std::string("use_cache=") + cachepath : "use_cache=/tmp");
 		vecret.push_back(single_cache_size_m != 0 ? std::string("ensure_diskfree=") + std::to_string(single_cache_size_m) : "ensure_diskfree=4096");
 
 		if (debug_mark.size() != 0) {
-			vecret.push_back(std::string("dbglevel=") + debug_mark);					// allow print dbg information
+			vecret.push_back(std::string("dbglevel=") + debug_mark);	// allow print dbg information
 		}
 
-		int vecsize = vecret.size();
-		if (vecsize == 0 ||
-			vecsize > 20) {
+		vecsize = vecret.size();
+		if (vecsize == 0) {
 			break;
 		}
 
-		args = new(std::nothrow) char *[40];
+		args = new(std::nothrow) char *[vecsize];
 		if (args == nullptr)
 		{
 			break;
 		}
-		memset(args, 0, 40);
+		memset(args, 0, vecsize);
 
 		// format s3fs parameters
 		for (int i = 0; i < vecsize; i++) {
@@ -114,7 +114,7 @@ int S3Io::open(mode_t mode, char filepath[PATH_MAX]) {
 
 	if (args != nullptr)
 	{
-		for (int i = 0; i < 40; i++)
+		for (int i = 0; i < vecsize; i++)
 		{
 			if (args[i] != nullptr)
 			{

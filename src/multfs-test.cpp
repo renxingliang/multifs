@@ -486,7 +486,7 @@ int log_level(char *debug_mark) {
 	return iret;
 }
 
-int init() {
+int main() {
 	int iret = 0;
 	int fd[2] = { 0 };
 
