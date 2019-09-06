@@ -41,13 +41,14 @@ public:
 
 private:
 	std::vector<std::string> split_path(std::string path);
+	std::string get_current_name();
 
 private:
 	fuse_file_info file_info;	// opened file infor
 	char file_path[PATH_MAX];	// saved full file path
 	std::string object_name;	// saved object name
 	fuse_conn_info conn_info;	//
-	size_t single_cache_size_m;
-	std::string cachepath;
-	std::string debug_mark;
+	size_t single_cache_size_m;	// single cache size
+	std::string cachepath;		// cache path
+	std::string debug_mark;		// info or debug or trace
 };

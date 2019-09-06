@@ -29,6 +29,29 @@ S3Io::S3Io(){
 S3Io::~S3Io(){
 }
 
+
+std::string S3Io::get_current_name() {
+	std::string name;
+
+	do {
+		char dir[PATH_MAX] = { 0 };
+		if (readlink("/proc/self/exe", dir, PATH_MAX) <= 0) {
+			break;
+		}
+
+		char *path_end = strrchr(dir, '/');
+		if (path_end == nullptr ||
+			strlen(path_end) == strlen("/")) {
+			break;
+		}
+
+		path_end++;
+		name = path_end;
+	} while (false);
+
+	return name;
+}
+
 int S3Io::open(mode_t mode, char filepath[PATH_MAX]) {
 	int iret = -1;
 	char **args = nullptr;
@@ -64,29 +87,20 @@ int S3Io::open(mode_t mode, char filepath[PATH_MAX]) {
 		{
 			break;
 		}
-		memset(args, 0, 20);
-
-		args[0] = new(std::nothrow) char[strlen("multfs") + 1];
-		if (args[0] == nullptr)
-		{
-			delete[] args;
-			break;
-		}
-		memset(args[0], 0, strlen("multfs") + 1);
-		strcpy(args[0], "multfs");
+		memset(args, 0, 40);
 
 		// format s3fs parameters
 		for (int i = 0; i < vecsize; i++) {
-			args[i + 1] = new(std::nothrow) char[vecret[i].size() + 1];
-			if (args[i+1] == nullptr)
+			args[i] = new(std::nothrow) char[vecret[i].size() + 1];
+			if (args[i] == nullptr)
 			{
 				break;
 			}
-			memset(args[i + 1], 0, vecret[i].size() + 1);
-			strcpy(args[i + 1], vecret[i].c_str());
+			memset(args[i], 0, vecret[i].size() + 1);
+			strcpy(args[i], vecret[i].c_str());
 		}
 
-		iret = init(vecsize + 1, args);
+		iret = init(vecsize, args);
 		if (iret == -1) {
 			break;
 		}
@@ -184,6 +198,12 @@ std::vector<std::string> S3Io::split_path(std::string strpath) {
 
 	do
 	{
+		std::string name = get_current_name();
+		if (name.size() != 0){
+			printf("current process name: %s\n", name.c_str());
+			vecret.push_back(name);
+		}
+
 		int pos = strpath.find("//");
 		if (pos == std::string::npos) {
 			break;
