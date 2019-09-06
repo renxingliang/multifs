@@ -53,10 +53,14 @@ int FtpIo::write(const char * buf, size_t size, off_t offset)
 	return 0;
 }
 
-int FtpIo::config(size_t single_cache_size_m, char *pcachepath, char *debug_mark) {
+int FtpIo::config_cache(size_t single_cache_size_m, char *pcachepath) {
 	single_cache_size_m = single_cache_size_m;
 	if (pcachepath != nullptr)
 	{
 		cachepath = pcachepath;
 	}
+}
+
+int FtpIo::log_level(char *log_mark) {
+	return 0;
 }

@@ -51,7 +51,8 @@ public:
 	// write data to the file witch you have openned
 	virtual int write(const char* buf, size_t size, off_t offset) = 0;
 
-	virtual int config(size_t single_cache_size_n, char *cachepath, char *debug_mark) = 0;
+	virtual int config_cache(size_t single_cache_size_n, char *cachepath) = 0;
+	virtual int log_level(char *log_mark) = 0;
 };
 
 

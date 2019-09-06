@@ -63,17 +63,11 @@ int S3Io::open(mode_t mode, char filepath[PATH_MAX]) {
 		vecret.push_back("check_cache_dir_exist");
 		vecret.push_back("del_cache");						// allow delete cache
 		vecret.push_back("-f");
+		vecret.push_back(cachepath.size() != 0 ? std::string("use_cache=") + cachepath : "use_cache=/tmp");
+		vecret.push_back(single_cache_size_m != 0 ? std::string("ensure_diskfree=") + std::to_string(single_cache_size_m) : "ensure_diskfree=4096");
 
 		if (debug_mark.size() != 0) {
 			vecret.push_back(std::string("dbglevel=") + debug_mark);					// allow print dbg information
-		}
-
-		if (cachepath.size() != 0) {
-			vecret.push_back(std::string("use_cache=") + cachepath);
-		}
-
-		if (single_cache_size_m != 0) { 
-			vecret.push_back(std::string("ensure_diskfree=") + std::to_string(single_cache_size_m));
 		}
 
 		int vecsize = vecret.size();
@@ -174,7 +168,7 @@ int S3Io::truncate(off_t size) {
 	return s3fs_truncate(object_name.c_str(), size);
 }
 
-int S3Io::config(size_t single_cache_size_m, char *pcachepath, char *debugmark) {
+int S3Io::config_cache(size_t single_cache_size_m, char *pcachepath) {
 
 	printf("set config\n");
 	single_cache_size_m = single_cache_size_m;
@@ -183,11 +177,15 @@ int S3Io::config(size_t single_cache_size_m, char *pcachepath, char *debugmark) 
 		cachepath = pcachepath;
 	}
 
-	if (debugmark != nullptr) {
-		printf("get debug mark %s\n", debugmark);
-		debug_mark = debugmark;
-	}
 	printf("set config success\n");
+	return 0;
+}
+
+int S3Io::log_level(char *log_mark) {
+	if (log_mark != nullptr) {
+		printf("get log %s\n", log_mark);
+		debug_mark = log_mark;
+	}
 
 	return 0;
 }
