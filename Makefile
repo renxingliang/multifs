@@ -29,8 +29,8 @@ s3fs_OBJECTS = $(SRC_S3)/s3io.$(OBJEXT) $(SRC_S3)/s3fs.$(OBJEXT) $(SRC_S3)/curl.
 
 ftp_OBJECTS = $(SRC_FTP)/ftpio.$(OBJEXT)
 smb_OBJECTS = $(SRC_SMB)/smbio.$(OBJEXT)
-multfs_OBJECTS = ./src/main.$(OBJEXT)
-multfs_test_OBJECTS = ./src/multfs-test.$(OBJEXT)
+multifs_OBJECTS = ./src/main.$(OBJEXT)
+multifs_test_OBJECTS = ./src/multifs-test.$(OBJEXT)
 all_OBJECTS = $(OBJ_DIR)/addhead.$(OBJEXT) $(OBJ_DIR)/cache.$(OBJEXT) $(OBJ_DIR)/common_auth.$(OBJEXT) $(OBJ_DIR)/curl.$(OBJEXT) \
 	$(OBJ_DIR)/fdcache.$(OBJEXT) $(OBJ_DIR)/ftpio.$(OBJEXT) $(OBJ_DIR)/main.$(OBJEXT) $(OBJ_DIR)/openssl_auth.$(OBJEXT) \
 	$(OBJ_DIR)/s3fs.$(OBJEXT) $(OBJ_DIR)/s3fs_util.$(OBJEXT) $(OBJ_DIR)/s3io.$(OBJEXT) $(OBJ_DIR)/smbio.$(OBJEXT) \
@@ -39,7 +39,7 @@ all_OBJECTS = $(OBJ_DIR)/addhead.$(OBJEXT) $(OBJ_DIR)/cache.$(OBJEXT) $(OBJ_DIR)
 LDADD= -lfuse -pthread -lcurl -lxml2 -lcrypto
 test_string_util_LDADD = $(LDADD)
 
-PROGRAMS = s3 ftp smb multfs multfs-test
+PROGRAMS = s3 ftp smb multifs multifs-test
 
 all: Makefile $(PROGRAMS)
 
@@ -54,11 +54,11 @@ s3: mkdir-tmp $(s3fs_OBJECTS)
 ftp: $(ftp_OBJECTS)
 smb: $(smb_OBJECTS)
 
-multfs: $(multfs_OBJECTS)
+multifs: $(multifs_OBJECTS)
 	$(AM_V_CXXLD)$(CXXLINK) $(all_OBJECTS) $(LDADD) $(LIBS)
 
-multfs-test: $(multfs_test_OBJECTS)
-	$(AM_V_CXXLD)$(CXXLINK) $(OBJ_DIR)/multfs-test.$(OBJEXT)
+multifs-test: $(multifs_test_OBJECTS)
+	$(AM_V_CXXLD)$(CXXLINK) $(OBJ_DIR)/multifs-test.$(OBJEXT)
 
 .cpp.o:
 	$(AM_V_CXX)$(CXXCOMPILE) -MT $@ -MD -MP -MF $*.Tpo -c -o $@ $<
