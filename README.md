@@ -7,20 +7,22 @@ Multfs is a stand-alone process. When a process starts, the parent process passe
     ```
     typedef enum
     {
-	    NFS_COMMAND_OPEN = 0,
-	    NFS_COMMAND_CLOSE,
-	    NFS_COMMAND_REMOVE,
-	    NFS_COMMAND_READ,
-	    NFS_COMMAND_WRITE,
-	    NFS_COMMAND_FLUSH,
-	    NTS_COMMAND_TRUNCATE,
-	    NFS_COMMAND_STAT,
+	    NFS_COMMAND_OPEN = 0,   // open command
+	    NFS_COMMAND_CLOSE,      // close command
+	    NFS_COMMAND_REMOVE,     // remove command
+	    NFS_COMMAND_READ,       // read command
+	    NFS_COMMAND_WRITE,      // write command
+	    NFS_COMMAND_FLUSH,      // flush command
+	    NTS_COMMAND_TRUNCATE,   // truncate command
+	    NFS_COMMAND_STAT,       // get file stat command
+	    NFS_COMMAND_CACHE,      // config cache command
+	    NFS_COMMAND_LOG,        // log command
     } multifs_command_e;
 
     typedef enum
     {
-	    OP_REQUEST = 1,        
-	    OP_ANSWER,
+	    OP_REQUEST = 1,         // request mark        
+	    OP_ANSWER,              // answer mark
     } multifs_opmode;
 
     typedef struct _multifs_command_header {
@@ -44,7 +46,11 @@ Each communication with multifs should contain a standard header (multifs_comman
 	    char filepath[PATH_MAX];    // object path
     } multifs_command_open_in;
     ```
-
+    File path need to be constructed in a special format, full as follow:
+        
+        protocol://ak:sk@domain/bucket/[dir]/object
+        
+        
 
 ## read
 + payload struct
@@ -87,7 +93,21 @@ Each communication with multifs should contain a standard header (multifs_comman
     } multifs_command_remove_in;
     ```
 ## close
-
+## set cache
++ payload struct
+    ```
+    typedef struct _multifs_command_cache_in {
+	    size_t single_cache_size_m;
+	    char cachepath[PATH_MAX];
+    } multifs_command_cache_in;
+    ```
+## set log
++ payload struct
+    ```
+    typedef struct _multifs_command_log_in {
+	    char debug_mark[PATH_MAX];
+    } multifs_command_log_in;
+    ```
 # Build
 + ubuntu
     ```

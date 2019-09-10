@@ -404,7 +404,7 @@ int config_cache(size_t single_cache_size_n, char *cachepath) {
 		memset(p, 0, len + 1);
 
 		multifs_command_header *pmsg_header = (multifs_command_header*)p;
-		pmsg_header->command = NFS_COMMAND_CONFIG;
+		pmsg_header->command = NFS_COMMAND_CACHE;
 		pmsg_header->magic = MULTIFS_HEADER_MAGIC;
 		pmsg_header->mode = OP_REQUEST;
 		pmsg_header->version = MULTIFS_VERSION;

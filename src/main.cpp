@@ -218,7 +218,7 @@ int dspcmd(multifs_command_header *msg_header, unsigned char *data) {
 
 			break;
 		}
-		case NFS_COMMAND_CONFIG: {
+		case NFS_COMMAND_CACHE: {
 			multifs_command_cache_in *config = (multifs_command_cache_in*)data;
 			single_cache_size_m = config->single_cache_size_m;
 			strcpy(cachepath, config->cachepath);
