@@ -166,8 +166,8 @@ int dspcmd(multifs_command_header *msg_header, unsigned char *data) {
 				}
 			}
 			else {
+				msg_header->payload = 0;
 				msg_out->error == -1;
-				msg_out = nullptr;
 			}
 
 			delete[] read_buffer;
@@ -176,7 +176,7 @@ int dspcmd(multifs_command_header *msg_header, unsigned char *data) {
 			break;
 		}
 
-							   // call flush after write
+		// call flush after write
 		case NFS_COMMAND_WRITE: {
 			multifs_command_write_in *cmd_write = (multifs_command_write_in*)data;
 			msg_header->error = file->write(cmd_write->buf, cmd_write->size, cmd_write->offset);
@@ -236,13 +236,14 @@ int dspcmd(multifs_command_header *msg_header, unsigned char *data) {
 	} while (false);
 
 	msg_out->mode = OP_ANSWER;
+	msg_out->error = -msg_out->error;
 	int iret = write(socket_child, msg_out, sizeof(multifs_command_header) + msg_out->payload);
 	if (iret == -1)	{
 		printf("write pipe error!\n");
 	}
 
 	if (msg_out != nullptr && 
-		(msg_out->command == NFS_COMMAND_STAT || msg_out->command == NFS_COMMAND_READ)) {
+		(msg_out->command == NFS_COMMAND_STAT || (msg_out->command == NFS_COMMAND_READ && msg_out->payload != 0))) {
 		delete[] msg_out;
 		msg_out = nullptr;
 	}

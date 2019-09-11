@@ -59,6 +59,8 @@ int S3Io::open(mode_t mode, char filepath[PATH_MAX]) {
 
 	do
 	{
+		file_info.flags = mode;
+
 		std::vector<std::string> vecret = split_path(filepath);
 		vecret.push_back("umask=0000");						// allow other user access
 		vecret.push_back("check_cache_dir_exist");			// check cache dir before operate
@@ -102,14 +104,21 @@ int S3Io::open(mode_t mode, char filepath[PATH_MAX]) {
 		}
 
 		s3fs_init(&conn_info);
-
 		iret = s3fs_open(object_name.c_str(), &file_info, mode);
-		if (iret != 0)
-		{
+		if (iret != 0) {
+			printf("open fail !\n");
 			break;
 		}
 
 		strcpy(file_path, filepath);
+		if ((file_info.flags&O_TRUNC) == O_TRUNC) {
+			printf("get trunc command\n");
+			iret = truncate(0);
+			if (iret != 0) {
+				printf("truncate fail!\n");
+				break;
+			}
+		}
 
 		iret = 0;
 	} while (false);
@@ -142,11 +151,40 @@ int S3Io::close() {
 }
 
 int S3Io::read(char* buf, size_t size, off_t offset) {
+	if ((file_info.flags&O_RDONLY) != O_RDONLY &&
+		(file_info.flags&O_RDWR) != O_RDWR) {
+		printf("can not read target file\n");
+		return -1;
+	}
+
 	return s3fs_read(object_name.c_str(), buf, size, offset, &file_info);
 }
 
 int S3Io::write(const char* buf, size_t size, off_t offset) {
-	return s3fs_write(object_name.c_str(), buf, size, offset, &file_info);
+	int iret = -1;
+
+	do {
+		if ((file_info.flags&& O_WRONLY) != O_WRONLY &&
+			(file_info.flags&& O_RDWR) != O_RDWR) {
+			return -1;
+		}
+
+		struct stat stbuf = { 0 };
+
+		// check length is valid
+		// There is no need to check whether the file exist or not.
+		// If the file does not exist, the length of the file is 0.
+		getstat(&stbuf);
+		printf("file size %d %s %d\n", stbuf.st_size, buf, size);
+		if (stbuf.st_size < offset) {
+			printf("invalid offset\n");
+			break;
+		}
+
+		iret = s3fs_write(object_name.c_str(), buf, size, offset, &file_info);
+	} while (false);
+	
+	return iret;
 }
 
 int S3Io::remove(char filepath[PATH_MAX]) {

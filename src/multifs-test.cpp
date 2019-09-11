@@ -168,8 +168,6 @@ int test_read(off_t offset, char* data, size_t size) {
 	int iret = -1;
 
 	do {
-		printf("test_read\n");
-
 		int len = sizeof(multifs_command_header) + sizeof(multifs_command_read_in);
 		unsigned char *p = new unsigned char[len + 1];
 		if (p == nullptr) {
@@ -194,29 +192,19 @@ int test_read(off_t offset, char* data, size_t size) {
 			break;
 		}
 
-		printf("wait read back!\n");
-
 		multifs_command_header cmd_header = { 0 };
 		int readlen = read(socket_par, &cmd_header, sizeof(multifs_command_header));
-		if (readlen == -1) {
+		if (readlen == -1 || 
+			cmd_header.payload == 0) {
 			break;
 		}
 
-// 		unsigned char* data = new(std::nothrow) unsigned char[cmd_header.payload + 1];
-// 		if (data == nullptr) {
-// 			printf("read data error!\n");
-// 			break;
-// 		}
-
+		printf("get file data %d\n", cmd_header.payload);
 		readlen = read(socket_par, data, cmd_header.payload);
 		if (readlen == -1) {
-// 			delete data;
-// 			data = nullptr;
 			break;
 		}
-		printf("recv from child thread :%d %d %s\n", cmd_header.payload, readlen, data);
-// 		delete data;
-// 		data = nullptr;
+
 		iret = cmd_header.payload;
 	} while (false);
 
@@ -227,8 +215,6 @@ int test_write(off_t offset, char *data, size_t size) {
 	int iret = -1;
 
 	do {
-		//char data[] = "22222222222222222222222222222222222";
-
 		int len = sizeof(multifs_command_header) + sizeof(multifs_command_write_in) + strlen(data);
 		unsigned char* p = new unsigned char[len + 1];
 		if (p == nullptr) {
@@ -329,7 +315,6 @@ int test_stat() {
 		}
 
 		iret = cmd_header.error;
-		printf("test_stat %d\n", iret);
 
 		multifs_command_stat_out stat_out = { 0 };
 		readlen = read(socket_par, &stat_out, sizeof(multifs_command_stat_out));
@@ -337,6 +322,7 @@ int test_stat() {
 			break;
 		}
 
+		printf("file size %d\n", stat_out.stbuf.st_size);
 		printf("atim %s\n", ctime(&stat_out.stbuf.st_atime));
 		printf("mtim %s\n", ctime(&stat_out.stbuf.st_mtime));
 		printf("ctim %s\n", ctime(&stat_out.stbuf.st_ctime));
@@ -349,7 +335,6 @@ int test_remove(char *szpath) {
 	int iret = -1;
 
 	do {
-		//char szpath[] = "s3://AKIDe8NsCLD0TkJh5DDuNbdT3wiIfmeK5LRH:qRmsmUH5jCZhaOyJQH0Ui5JLBZlkZBYk@cos.ap-chengdu.myqcloud.com/test-1259750376/123";
 		int len = sizeof(multifs_command_header) + sizeof(multifs_command_remove_in);
 		unsigned char* p = new unsigned char[len + 1];
 		if (p == nullptr) {
@@ -486,13 +471,14 @@ int log_level(char *debug_mark) {
 	return iret;
 }
 
-int main() {
-	int iret = 0;
+int init() {
+	int iret = -1;
 	int fd[2] = { 0 };
 
 	do {
-		if (socketpair(AF_UNIX, SOCK_STREAM, 0, fd) < 0)
+		if (socketpair(AF_UNIX, SOCK_STREAM, 0, fd) < 0) {
 			break;
+		}
 
 		socket_par = fd[0];
 		int  child = fd[1];
@@ -510,13 +496,13 @@ int main() {
 
 			char szfullpath[1024] = { 0 };
 			strcpy(szfullpath, pcur_dir);
-			strcat(szfullpath, "/multfs");
+			strcat(szfullpath, "/multifs");
 			printf("%s\n", szfullpath);
 
 			char string[25];
 			sprintf(string, "%d", child);
 
-			if (execl(szfullpath, "multfs", string, NULL) == -1) {
+			if (execl(szfullpath, "multifs", string, NULL) == -1) {
 				printf("create child error!\n");
 			}
 			else {
@@ -525,22 +511,7 @@ int main() {
 			exit(0);
 		}
 		else {
-
-
-// 			test_open(parent);
-// 			test_read(parent);
-// 			test_read(parent);
-// 			test_read(parent);
-// 			test_read(parent);
-			//test_write(parent);
-			//test_flush(parent);
-			//test_remove(parent);
-			//test_truncate(parent);
-			//test_stat(parent);
-//			test_close(parent);
-
-// 			char tmp[256] = { 0 };
-// 			read(parent, tmp, 256);
+			iret = 0;
 		}
 	} while (false);
 

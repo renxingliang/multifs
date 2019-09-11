@@ -2188,13 +2188,14 @@ int s3fs_open(const char* _path, struct fuse_file_info* fi, mode_t mode)
 		return result;
 	}
 
-	st.st_mode = mode;
 	result = check_object_access(path, mask, &st);
 	if (-ENOENT == result) {
 		// If there is not a target file, this function returns -ENOENT.
 		// You can return error
-		if (mode == O_RDONLY)
-		{
+
+		printf("xxxxxxxxxxxxxxxx %d %d\n", mode, O_CREAT);
+		if ((mode&O_CREAT) != O_CREAT) {
+			printf("xxdddddddddddddddddd\n");
 			return result;
 		}
 
