@@ -180,6 +180,7 @@ int dspcmd(multifs_command_header *msg_header, unsigned char *data) {
 		case NFS_COMMAND_WRITE: {
 			multifs_command_write_in *cmd_write = (multifs_command_write_in*)data;
 			msg_header->error = file->write(cmd_write->buf, cmd_write->size, cmd_write->offset);
+			msg_header->error = -msg_header->error;
 			msg_out->payload = 0;
 
 			break;
