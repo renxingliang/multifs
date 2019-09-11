@@ -191,6 +191,9 @@ int S3Io::remove(char filepath[PATH_MAX]) {
 	int iret = open(0, filepath);
 	if (iret == 0) {
 		iret = s3fs_unlink(object_name.c_str());
+
+		// Match open operation
+		close();
 	}
 	
 	return iret;

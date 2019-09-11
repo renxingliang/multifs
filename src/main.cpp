@@ -298,14 +298,16 @@ int main(int argc, char *argv[])
 				}				
 			}
 
-			// 
+			// dispatch option
 			iret = dspcmd(&msg_header, pbuffer);
 			if (pbuffer != nullptr) {
 				delete pbuffer;
 				pbuffer = nullptr;
 			}
 
-			if (msg_header.command == NFS_COMMAND_CLOSE) {
+			// Delete is a separate file operation, so exit the child process after the operation is completed.
+			if (msg_header.command == NFS_COMMAND_CLOSE ||
+				msg_header.command == NFS_COMMAND_REMOVE) {
 				printf("get close event!\n");
 				break;
 			}
