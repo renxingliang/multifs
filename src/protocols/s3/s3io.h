@@ -45,6 +45,7 @@ private:
 	std::string get_current_name();
 
 private:
+	bool is_first_write;			// 
 	fuse_file_info file_info;	// opened file infor
 	char file_path[PATH_MAX];	// saved full file path
 	std::string object_name;	// saved object name

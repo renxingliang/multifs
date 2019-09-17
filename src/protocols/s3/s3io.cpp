@@ -22,8 +22,9 @@
 #include <iostream>
 #include <tr1/memory>
 
-S3Io::S3Io(){
+S3Io::S3Io() {
 	memset(file_path, 0, PATH_MAX);
+	is_first_write = true;
 }
 
 S3Io::~S3Io(){
@@ -177,15 +178,18 @@ int S3Io::write(const char* buf, size_t size, off_t offset) {
 			return 0;
 		}
 
-		struct stat stbuf = { 0 };
-
 		// check length is valid
 		// There is no need to check whether the file exist or not.
 		// If the file does not exist, the length of the file is 0.
-		getstat(&stbuf);
-		if (stbuf.st_size < offset) {
-			printf("invalid offset\n");
-			break;
+		if (is_first_write) {
+			struct stat stbuf = { 0 };
+			getstat(&stbuf);
+			if (stbuf.st_size < offset) {
+				printf("invalid offset %lld %lld\n", stbuf.st_size, offset);
+				break;
+			}
+
+			is_first_write = false;
 		}
 
 		iret = s3fs_write(object_name.c_str(), buf, size, offset, &file_info);
