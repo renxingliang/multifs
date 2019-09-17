@@ -100,7 +100,7 @@ typedef struct _multifs_command_stat_out {
 } multifs_command_stat_out;
 
 typedef struct _multifs_command_cache_in {
-	size_t single_cache_size_m;
+	size_t free_disk_size_m;
 	char cachepath[PATH_MAX];
 } multifs_command_cache_in;
 

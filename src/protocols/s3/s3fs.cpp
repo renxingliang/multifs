@@ -2193,9 +2193,7 @@ int s3fs_open(const char* _path, struct fuse_file_info* fi, mode_t mode)
 		// If there is not a target file, this function returns -ENOENT.
 		// You can return error
 
-		printf("xxxxxxxxxxxxxxxx %d %d\n", mode, O_CREAT);
 		if ((mode&O_CREAT) != O_CREAT) {
-			printf("xxdddddddddddddddddd\n");
 			return result;
 		}
 

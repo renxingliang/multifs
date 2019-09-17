@@ -167,7 +167,7 @@ int dspcmd(multifs_command_header *msg_header, unsigned char *data) {
 			}
 			else {
 				msg_header->payload = 0;
-				msg_out->error == -1;
+				msg_out->error = -1;
 			}
 
 			delete[] read_buffer;
@@ -221,7 +221,7 @@ int dspcmd(multifs_command_header *msg_header, unsigned char *data) {
 		}
 		case NFS_COMMAND_CACHE: {
 			multifs_command_cache_in *config = (multifs_command_cache_in*)data;
-			single_cache_size_m = config->single_cache_size_m;
+			single_cache_size_m = config->free_disk_size_m;
 			strcpy(cachepath, config->cachepath);
 			msg_out->payload = 0;
 			break;
@@ -243,6 +243,7 @@ int dspcmd(multifs_command_header *msg_header, unsigned char *data) {
 		printf("write pipe error!\n");
 	}
 
+	iret = msg_out->error;
 	if (msg_out != nullptr && 
 		(msg_out->command == NFS_COMMAND_STAT || (msg_out->command == NFS_COMMAND_READ && msg_out->payload != 0))) {
 		delete[] msg_out;
@@ -278,7 +279,7 @@ int main(int argc, char *argv[])
 			if (msg_header.version != MULTIFS_VERSION ||
 				msg_header.magic != MULTIFS_HEADER_MAGIC ||
 				msg_header.mode != OP_REQUEST) {
-				continue;
+				continue; 
 			}
 
 			// get the cmd payload
@@ -307,8 +308,9 @@ int main(int argc, char *argv[])
 
 			// Delete is a separate file operation, so exit the child process after the operation is completed.
 			if (msg_header.command == NFS_COMMAND_CLOSE ||
-				msg_header.command == NFS_COMMAND_REMOVE) {
-				printf("get close event!\n");
+				msg_header.command == NFS_COMMAND_REMOVE ||
+				(msg_header.command == NFS_COMMAND_OPEN && iret != 0)) {
+				printf("get close event! %d\n", iret);
 				break;
 			}
 

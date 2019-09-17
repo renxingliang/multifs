@@ -112,10 +112,18 @@ int S3Io::open(mode_t mode, char filepath[PATH_MAX]) {
 
 		strcpy(file_path, filepath);
 		if ((file_info.flags&O_TRUNC) == O_TRUNC) {
-			printf("get trunc command\n");
 			iret = truncate(0);
 			if (iret != 0) {
 				printf("truncate fail!\n");
+				break;
+			}
+		}
+
+		// If the file already exists, it cannot be overwritten.
+		if ((file_info.flags&O_CREAT) == O_CREAT &&
+			(file_info.flags&O_EXCL) == O_EXCL) {
+			if (iret == 0) {
+				iret = -1;
 				break;
 			}
 		}
@@ -154,7 +162,7 @@ int S3Io::read(char* buf, size_t size, off_t offset) {
 	if ((file_info.flags&O_RDONLY) != O_RDONLY &&
 		(file_info.flags&O_RDWR) != O_RDWR) {
 		printf("can not read target file\n");
-		return -1;
+		return 0;
 	}
 
 	return s3fs_read(object_name.c_str(), buf, size, offset, &file_info);
@@ -166,7 +174,7 @@ int S3Io::write(const char* buf, size_t size, off_t offset) {
 	do {
 		if ((file_info.flags&& O_WRONLY) != O_WRONLY &&
 			(file_info.flags&& O_RDWR) != O_RDWR) {
-			return -1;
+			return 0;
 		}
 
 		struct stat stbuf = { 0 };
@@ -175,7 +183,6 @@ int S3Io::write(const char* buf, size_t size, off_t offset) {
 		// There is no need to check whether the file exist or not.
 		// If the file does not exist, the length of the file is 0.
 		getstat(&stbuf);
-		printf("file size %d %s %d\n", stbuf.st_size, buf, size);
 		if (stbuf.st_size < offset) {
 			printf("invalid offset\n");
 			break;
@@ -211,9 +218,9 @@ int S3Io::truncate(off_t size) {
 	return s3fs_truncate(object_name.c_str(), size);
 }
 
-int S3Io::config_cache(size_t single_cache_size_m, char *pcachepath) {
+int S3Io::config_cache(size_t size_m, char *pcachepath) {
 
-	single_cache_size_m = single_cache_size_m;
+	single_cache_size_m = size_m;
 	if (pcachepath != nullptr) {
 		cachepath = pcachepath;
 	}
