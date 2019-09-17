@@ -160,8 +160,8 @@ int S3Io::close() {
 }
 
 int S3Io::read(char* buf, size_t size, off_t offset) {
-	if ((file_info.flags&O_RDONLY) != O_RDONLY &&
-		(file_info.flags&O_RDWR) != O_RDWR) {
+	if ((file_info.flags & O_ACCMODE) != O_RDONLY &&
+		(file_info.flags & O_RDWR) != O_RDWR) {
 		printf("can not read target file\n");
 		return 0;
 	}
@@ -173,18 +173,20 @@ int S3Io::write(const char* buf, size_t size, off_t offset) {
 	int iret = -1;
 
 	do {
-		if ((file_info.flags&& O_WRONLY) != O_WRONLY &&
-			(file_info.flags&& O_RDWR) != O_RDWR) {
+		if ((file_info.flags & O_ACCMODE) != O_WRONLY &&
+			(file_info.flags & O_RDWR) != O_RDWR) {
 			return 0;
 		}
 
 		// check length is valid
 		// There is no need to check whether the file exist or not.
 		// If the file does not exist, the length of the file is 0.
-		if (is_first_write) {
+		if (is_first_write)
+		{
 			struct stat stbuf = { 0 };
-			getstat(&stbuf);
-			if (stbuf.st_size < offset) {
+			int istat = getstat(&stbuf);
+			if (istat == -2 && 
+				0 < offset) {
 				printf("invalid offset %lld %lld\n", stbuf.st_size, offset);
 				break;
 			}
