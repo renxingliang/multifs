@@ -280,7 +280,7 @@ int test_write(off_t offset, char *data, size_t size) {
 		multifs_command_write_in *write_in = (multifs_command_write_in *)(p + sizeof(multifs_command_header));
 		write_in->offset = offset;
 		write_in->size = size;
-		strcpy(write_in->buf, data);
+		memcpy(write_in->buf, data, size);
 		int bytes = write(socket_par, p, len);
 		if (bytes == -1) {
 			printf("open error, send data fail!\n");
