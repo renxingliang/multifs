@@ -903,7 +903,7 @@ int s3fs_getattr(const char* _path, struct stat* stbuf)
 	return result;
 }
 
-static int s3fs_readlink(const char* _path, char* buf, size_t size)
+static int s3fs_readlink(const char* _path, char* buf, size_t size, size_t *read_bytes)
 {
 	if (!_path || !buf || 0 == size) {
 		return 0;
@@ -927,7 +927,7 @@ static int s3fs_readlink(const char* _path, char* buf, size_t size)
 	}
 	// Read
 	ssize_t ressize;
-	if (0 > (ressize = ent->Read(buf, 0, readsize))) {
+	if (0 > (ressize = ent->Read(buf, 0, readsize, read_bytes))) {
 		S3FS_PRN_ERR("could not read file(file=%s, ressize=%jd)", path, (intmax_t)ressize);
 		FdManager::get()->Close(ent);
 		return static_cast<int>(ressize);
@@ -1230,7 +1230,7 @@ static int s3fs_rmdir(const char* _path)
 	return result;
 }
 
-static int s3fs_symlink(const char* _from, const char* _to)
+static int s3fs_symlink(const char* _from, const char* _to, size_t *read_bytes)
 {
 	WTF8_ENCODE(from)
 		WTF8_ENCODE(to)
@@ -1270,7 +1270,7 @@ static int s3fs_symlink(const char* _from, const char* _to)
 	// write(without space words)
 	string  strFrom = trim(string(from));
 	ssize_t from_size = static_cast<ssize_t>(strFrom.length());
-	if (from_size != ent->Write(strFrom.c_str(), 0, from_size)) {
+	if (from_size != ent->Write(strFrom.c_str(), 0, from_size, read_bytes)) {
 		S3FS_PRN_ERR("could not write tmpfile(errno=%d)", errno);
 		FdManager::get()->Close(ent);
 		return -errno;
@@ -2240,7 +2240,7 @@ int s3fs_open(const char* _path, struct fuse_file_info* fi, mode_t mode)
 	return 0;
 }
 
-int s3fs_read(const char* _path, char* buf, size_t size, off_t offset, struct fuse_file_info* fi)
+int s3fs_read(const char* _path, char* buf, size_t size, off_t offset, struct fuse_file_info* fi, size_t *read_bytes)
 {
 	WTF8_ENCODE(path)
 		ssize_t res;
@@ -2265,7 +2265,7 @@ int s3fs_read(const char* _path, char* buf, size_t size, off_t offset, struct fu
 		return 0;
 	}
 
-	if (0 > (res = ent->Read(buf, offset, size, false))) {
+	if (0 > (res = ent->Read(buf, offset, size, read_bytes, false))) {
 		S3FS_PRN_WARN("failed to read file(%s). result=%jd", path, (intmax_t)res);
 	}
 
@@ -2274,7 +2274,7 @@ int s3fs_read(const char* _path, char* buf, size_t size, off_t offset, struct fu
 	return static_cast<int>(res);
 }
 
-int s3fs_write(const char* _path, const char* buf, size_t size, off_t offset, struct fuse_file_info* fi)
+int s3fs_write(const char* _path, const char* buf, size_t size, off_t offset, struct fuse_file_info* fi, size_t *write_bytes)
 {
 	WTF8_ENCODE(path)
 		ssize_t res;
@@ -2291,7 +2291,7 @@ int s3fs_write(const char* _path, const char* buf, size_t size, off_t offset, st
 		S3FS_PRN_WARN("different fd(%d - %llu)", ent->GetFd(), (unsigned long long)(fi->fh));
 	}
 
-	if (0 > (res = ent->Write(buf, offset, size))) {
+	if (0 > (res = ent->Write(buf, offset, size, write_bytes))) {
 		S3FS_PRN_WARN("failed to write file(%s). result=%jd", path, (intmax_t)res);
 	}
 	FdManager::get()->Close(ent);

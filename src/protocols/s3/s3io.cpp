@@ -25,6 +25,7 @@
 S3Io::S3Io() {
 	memset(file_path, 0, PATH_MAX);
 	is_first_write = true;
+	open_success = false;
 }
 
 S3Io::~S3Io(){
@@ -82,8 +83,7 @@ int S3Io::open(mode_t mode, char filepath[PATH_MAX]) {
 		}
 
 		args = new(std::nothrow) char *[vecsize];
-		if (args == nullptr)
-		{
+		if (args == nullptr) {
 			break;
 		}
 		memset(args, 0, vecsize);
@@ -115,6 +115,7 @@ int S3Io::open(mode_t mode, char filepath[PATH_MAX]) {
 		if ((file_info.flags&O_TRUNC) == O_TRUNC) {
 			iret = truncate(0);
 			if (iret != 0) {
+				iret = -1;
 				printf("truncate fail!\n");
 				break;
 			}
@@ -130,6 +131,7 @@ int S3Io::open(mode_t mode, char filepath[PATH_MAX]) {
 		}
 
 		iret = 0;
+		open_success = true;
 	} while (false);
 
 	if (args != nullptr)
@@ -151,31 +153,55 @@ int S3Io::open(mode_t mode, char filepath[PATH_MAX]) {
 }
 
 int S3Io::close() {
-	int iret = s3fs_flush(object_name.c_str(), &file_info);
-	if (iret == 0) {
-		iret = uninit();
-	}
+	int iret = -1;
+
+	do {
+		if (!open_success) {
+			iret = 0;
+			break;
+		}
+
+		iret = s3fs_flush(object_name.c_str(), &file_info);
+		if (iret == 0) {
+			iret = uninit();
+		}
+	} while (false);
 
 	return iret;
 }
 
-int S3Io::read(char* buf, size_t size, off_t offset) {
-	if ((file_info.flags & O_ACCMODE) != O_RDONLY &&
-		(file_info.flags & O_RDWR) != O_RDWR) {
-		printf("can not read target file\n");
-		return 0;
-	}
-
-	return s3fs_read(object_name.c_str(), buf, size, offset, &file_info);
-}
-
-int S3Io::write(const char* buf, size_t size, off_t offset) {
+int S3Io::read(char* buf, size_t size, off_t offset, size_t *read_bytes) {
 	int iret = -1;
 
 	do {
+		if (!open_success) {
+			break;
+		}
+
+		if ((file_info.flags & O_ACCMODE) != O_RDONLY &&
+			(file_info.flags & O_RDWR) != O_RDWR) {
+			printf("can not read target file\n");
+			break;
+		}
+
+		printf("begin s3fs_read offset %d buffer %d\n", offset, size);
+		iret = s3fs_read(object_name.c_str(), buf, size, offset, &file_info, read_bytes);
+	} while (false);
+
+	return iret;
+}
+
+int S3Io::write(const char* buf, size_t size, off_t offset, size_t *write_bytes) {
+	int iret = -1;
+
+	do {
+		if (!open_success) {
+			break;
+		}
+
 		if ((file_info.flags & O_ACCMODE) != O_WRONLY &&
 			(file_info.flags & O_RDWR) != O_RDWR) {
-			return 0;
+			break;
 		}
 
 		// check length is valid
@@ -184,7 +210,7 @@ int S3Io::write(const char* buf, size_t size, off_t offset) {
 		if (is_first_write)
 		{
 			struct stat stbuf = { 0 };
-			int istat = getstat(&stbuf);
+			int istat = s3fs_getattr(object_name.c_str(), &stbuf);
 			if (istat == -2 && 
 				0 < offset) {
 				printf("invalid offset %lld %lld\n", stbuf.st_size, offset);
@@ -194,33 +220,72 @@ int S3Io::write(const char* buf, size_t size, off_t offset) {
 			is_first_write = false;
 		}
 
-		iret = s3fs_write(object_name.c_str(), buf, size, offset, &file_info);
+		iret = s3fs_write(object_name.c_str(), buf, size, offset, &file_info, write_bytes);
 	} while (false);
 	
 	return iret;
 }
 
 int S3Io::remove(char filepath[PATH_MAX]) {
-	int iret = open(0, filepath);
-	if (iret == 0) {
+	int iret = -1;
+
+	do {
+		if (!open_success) {
+			iret = open(0, filepath);
+			if (iret != 0) {
+				break;
+			}
+		}
+
 		iret = s3fs_unlink(object_name.c_str());
 
 		// Match open operation
-		close();
-	}
+		if (!open_success) {
+			close();
+		}
+	} while (false);
 	
 	return iret;
 }
 
 int S3Io::flush() {
+	if (!open_success) {
+		return -1;
+	}
+
 	return s3fs_flush(object_name.c_str(), &file_info);
 }
 
-int S3Io::getstat(struct stat* stbuf) {
-	return s3fs_getattr(object_name.c_str(), stbuf);
+int S3Io::getstat(char filepath[PATH_MAX], struct stat* stbuf) {
+	int iret = -1;
+
+	printf("s3io getstat\n");
+	do {
+		if (!open_success) {
+			printf("file does not open\n");
+			iret = open(0, filepath);
+			if (iret != 0) {
+				break;
+			}
+		}
+
+		iret = s3fs_getattr(object_name.c_str(), stbuf);
+
+		// Match open operation
+		if (!open_success) {
+			close();
+		}
+	} while (false);
+
+	printf("get stat result %d\n", iret);
+	return iret;
 }
 
 int S3Io::truncate(off_t size) {
+	if (!open_success) {
+		return -1;
+	}
+
 	return s3fs_truncate(object_name.c_str(), size);
 }
 

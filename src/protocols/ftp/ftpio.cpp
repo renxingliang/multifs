@@ -33,7 +33,7 @@ int FtpIo::flush() {
 	return 0;
 }
 
-int FtpIo::getstat(struct stat * stbuf)
+int FtpIo::getstat(char filepath[PATH_MAX], struct stat * stbuf)
 {
 	return 0;
 }
@@ -43,12 +43,12 @@ int FtpIo::truncate(off_t size)
 	return 0;
 }
 
-int FtpIo::read(char * buf, size_t size, off_t offset)
+int FtpIo::read(char * buf, size_t size, off_t offset, size_t *read_bytes)
 {
 	return 0;
 }
 
-int FtpIo::write(const char * buf, size_t size, off_t offset)
+int FtpIo::write(const char * buf, size_t size, off_t offset, size_t *write_bytes)
 {
 	return 0;
 }

@@ -91,8 +91,8 @@ int s3fs_getattr(const char* path, struct stat* stbuf);
 int s3fs_unlink(const char* path);
 int s3fs_truncate(const char* path, off_t size);
 int s3fs_open(const char* path, struct fuse_file_info* fi, mode_t mode);
-int s3fs_read(const char* path, char* buf, size_t size, off_t offset, struct fuse_file_info* fi);
-int s3fs_write(const char* path, const char* buf, size_t size, off_t offset, struct fuse_file_info* fi);
+int s3fs_read(const char* path, char* buf, size_t size, off_t offset, struct fuse_file_info* fi, size_t *read_bytes);
+int s3fs_write(const char* path, const char* buf, size_t size, off_t offset, struct fuse_file_info* fi, size_t *write_bytes);
 int s3fs_flush(const char* path, struct fuse_file_info* fi);
 void* s3fs_init(struct fuse_conn_info* conn);
 

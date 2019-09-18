@@ -40,16 +40,16 @@ public:
 	virtual int flush() = 0;
 
 	// Get file attributes
-	virtual int getstat(struct stat* stbuf) = 0;
+	virtual int getstat(char filepath[PATH_MAX], struct stat* stbuf) = 0;
 
 	// shrink or extend the size of a file to the specified size
 	virtual int truncate(off_t size) = 0;
 
 	// read from a file descriptor
-	virtual int read(char* buf, size_t size, off_t offset) = 0;
+	virtual int read(char* buf, size_t size, off_t offset, size_t *read_bytes) = 0;
 
 	// write data to the file witch you have openned
-	virtual int write(const char* buf, size_t size, off_t offset) = 0;
+	virtual int write(const char* buf, size_t size, off_t offset, size_t *write_bytes) = 0;
 
 	virtual int config_cache(size_t single_cache_size_n, char *cachepath) = 0;
 	virtual int log_level(char *log_mark) = 0;

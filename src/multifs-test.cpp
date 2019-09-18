@@ -45,7 +45,7 @@ extern "C" {
 	int test_flush();
 	int test_read(off_t offset, char* data, size_t size);
 	int test_remove(char *szpath);
-	int test_stat();
+	int test_stat(char *szpath);
 	int test_write(off_t offset, char *data, size_t size);
 	int test_truncate(size_t size);
 	int config_cache(size_t single_cache_size_n, char *cachepath);
@@ -88,6 +88,10 @@ int test_open(char *szpath, mode_t mode) {
 	int iret = 1;
 
 	do {
+		if (check_child_exist() == -1) {
+			break;
+		}
+
 		if (szpath == nullptr) {
 			printf("path invalid!\n");
 			break;
@@ -103,10 +107,10 @@ int test_open(char *szpath, mode_t mode) {
 		memset(p, 0, len + 1);
 
 		multifs_command_header *pmsg_header = (multifs_command_header*)p;
-		pmsg_header->command = NFS_COMMAND_OPEN;
+		pmsg_header->command = MFS_COMMAND_OPEN;
 		pmsg_header->magic = MULTIFS_HEADER_MAGIC;
 		pmsg_header->mode = OP_REQUEST;
-		pmsg_header->version = MULTIFS_VERSION;
+		pmsg_header->version = MULTIFS_PROTO_VERSION;
 		pmsg_header->sequence = 1;
 		pmsg_header->payload = sizeof(multifs_command_open_in);
 
@@ -127,7 +131,7 @@ int test_open(char *szpath, mode_t mode) {
 			break;
 		}
 		else {
-			if (cmd_header.command == NFS_COMMAND_OPEN) {
+			if (cmd_header.command == MFS_COMMAND_OPEN) {
 				iret = cmd_header.error;
 			}
 		}
@@ -145,10 +149,10 @@ int test_close() {
 		}
 
 		multifs_command_header cmd_header = { 0 };
-		cmd_header.command = NFS_COMMAND_CLOSE;
+		cmd_header.command = MFS_COMMAND_CLOSE;
 		cmd_header.magic = MULTIFS_HEADER_MAGIC;
 		cmd_header.mode = OP_REQUEST;
-		cmd_header.version = MULTIFS_VERSION;
+		cmd_header.version = MULTIFS_PROTO_VERSION;
 		cmd_header.sequence = 1;
 		cmd_header.payload = 0;
 		int bytes = write(socket_par, &cmd_header, sizeof(multifs_command_header));
@@ -162,7 +166,6 @@ int test_close() {
 		if (readlen == -1) {
 			break;
 		}
-
 
 		iret = cmd_header_respone.error;
 	} while (false);
@@ -179,10 +182,10 @@ int test_flush() {
 		}
 
 		multifs_command_header cmd_header = { 0 };
-		cmd_header.command = NFS_COMMAND_FLUSH;
+		cmd_header.command = MFS_COMMAND_FLUSH;
 		cmd_header.magic = MULTIFS_HEADER_MAGIC;
 		cmd_header.mode = OP_REQUEST;
-		cmd_header.version = MULTIFS_VERSION;
+		cmd_header.version = MULTIFS_PROTO_VERSION;
 		cmd_header.sequence = 1;
 		cmd_header.payload = 0;
 		int bytes = write(socket_par, &cmd_header, sizeof(multifs_command_header));
@@ -220,10 +223,10 @@ int test_read(off_t offset, char* data, size_t size) {
 		memset(p, 0, len + 1);
 
 		multifs_command_header *msg_header = (multifs_command_header*)p;
-		msg_header->command = NFS_COMMAND_READ;
+		msg_header->command = MFS_COMMAND_READ;
 		msg_header->magic = MULTIFS_HEADER_MAGIC;
 		msg_header->mode = OP_REQUEST;
-		msg_header->version = MULTIFS_VERSION;
+		msg_header->version = MULTIFS_PROTO_VERSION;
 		msg_header->sequence = 1;
 		msg_header->payload = sizeof(multifs_command_read_in);
 		multifs_command_read_in *read_in = (multifs_command_read_in *)(p + sizeof(multifs_command_header));
@@ -242,12 +245,21 @@ int test_read(off_t offset, char* data, size_t size) {
 			break;
 		}
 
-		readlen = read(socket_par, data, cmd_header.payload);
+		// get read option payload
+		unsigned char *data_buffer = new unsigned char[cmd_header.payload + 1];
+		if (p == nullptr) {
+			break;
+		}
+		std::auto_ptr<unsigned char> tmp_buf(data_buffer);
+		memset(data_buffer, 0, cmd_header.payload + 1);
+		readlen = read(socket_par, data_buffer, cmd_header.payload);
 		if (readlen == -1) {
 			break;
 		}
+		multifs_command_read_out *read_out = (multifs_command_read_out *)data_buffer;
+		memcpy(data, read_out->buf, read_out->size);
 
-		iret = cmd_header.error;
+		iret = read_out->size;
 	} while (false);
 
 	return iret;
@@ -271,10 +283,10 @@ int test_write(off_t offset, char *data, size_t size) {
 		memset(p, 0, len + 1);
 
 		multifs_command_header* msg_header = (multifs_command_header*)p;
-		msg_header->command = NFS_COMMAND_WRITE;
+		msg_header->command = MFS_COMMAND_WRITE;
 		msg_header->magic = MULTIFS_HEADER_MAGIC;
 		msg_header->mode = OP_REQUEST;
-		msg_header->version = MULTIFS_VERSION;
+		msg_header->version = MULTIFS_PROTO_VERSION;
 		msg_header->sequence = 1;
 		msg_header->payload = sizeof(multifs_command_write_in) + strlen(data);
 		multifs_command_write_in *write_in = (multifs_command_write_in *)(p + sizeof(multifs_command_header));
@@ -293,7 +305,16 @@ int test_write(off_t offset, char *data, size_t size) {
 			break;
 		}
 
-		iret = cmd_header.error;
+		if (cmd_header.payload != 0)
+		{
+			multifs_command_write_out write_out = { 0 };
+			readlen = read(socket_par, &write_out, sizeof(multifs_command_write_out));
+			if (readlen == -1) {
+				break;
+			}
+
+			iret = write_out.size;
+		}
 	} while (false);
 
 	return iret;
@@ -316,10 +337,10 @@ int test_truncate(size_t size) {
 		memset(p, 0, len + 1);
 
 		multifs_command_header* msg_header = (multifs_command_header*)p;
-		msg_header->command = NTS_COMMAND_TRUNCATE;
+		msg_header->command = MFS_COMMAND_TRUNCATE;
 		msg_header->magic = MULTIFS_HEADER_MAGIC;
 		msg_header->mode = OP_REQUEST;
-		msg_header->version = MULTIFS_VERSION;
+		msg_header->version = MULTIFS_PROTO_VERSION;
 		msg_header->sequence = 1;
 		msg_header->payload = sizeof(multifs_command_truncate_in);
 		multifs_command_truncate_in *truncate_in = (multifs_command_truncate_in *)(p + sizeof(multifs_command_header));
@@ -342,7 +363,7 @@ int test_truncate(size_t size) {
 	return iret;
 }
 
-int test_stat() {
+int test_stat(char *szpath) {
 	int iret = 1;
 
 	do {
@@ -350,27 +371,39 @@ int test_stat() {
 			break;
 		}
 
-		multifs_command_header msg_header = { 0 };
-		msg_header.command = NFS_COMMAND_STAT;
-		msg_header.magic = MULTIFS_HEADER_MAGIC;
-		msg_header.mode = OP_REQUEST;
-		msg_header.version = MULTIFS_VERSION;
-		msg_header.sequence = 1;
-		msg_header.payload = 0;
-		int bytes = write(socket_par, &msg_header, sizeof(multifs_command_header));
+		int len = sizeof(multifs_command_header) + sizeof(multifs_command_stat_in);
+		unsigned char *p = new unsigned char[len + 1];
+		if (p == nullptr) {
+			break;
+		}
+		std::auto_ptr<unsigned char> tmp(p);
+		memset(p, 0, len + 1);
+
+		multifs_command_header *msg_header = (multifs_command_header*)p;
+		msg_header->command = MFS_COMMAND_STAT;
+		msg_header->magic = MULTIFS_HEADER_MAGIC;
+		msg_header->mode = OP_REQUEST;
+		msg_header->version = MULTIFS_PROTO_VERSION;
+		msg_header->sequence = 1;
+		msg_header->payload = sizeof(multifs_command_stat_in);
+		multifs_command_stat_in *read_in = (multifs_command_stat_in *)(p + sizeof(multifs_command_header));
+		strcpy(read_in->filepath, szpath);
+		int bytes = write(socket_par, p, len);
 		if (bytes == -1) {
 			printf("open error, send data fail!\n");
 			break;
 		}
-
+		
+		printf("stat begin read data\n");
 		multifs_command_header cmd_header = { 0 };
 		int readlen = read(socket_par, &cmd_header, sizeof(multifs_command_header));
-		if (readlen == -1) {
+		if (readlen == -1 || 
+			cmd_header.payload == 0) {
 			break;
 		}
 
 		iret = cmd_header.error;
-
+		printf("stat begin read data\n");
 		multifs_command_stat_out stat_out = { 0 };
 		readlen = read(socket_par, &stat_out, sizeof(multifs_command_stat_out));
 		if (readlen == -1) {
@@ -403,10 +436,10 @@ int test_remove(char *szpath) {
 		memset(p, 0, len + 1);
 
 		multifs_command_header* msg_header = (multifs_command_header*)p;
-		msg_header->command = NFS_COMMAND_REMOVE;
+		msg_header->command = MFS_COMMAND_REMOVE;
 		msg_header->magic = MULTIFS_HEADER_MAGIC;
 		msg_header->mode = OP_REQUEST;
-		msg_header->version = MULTIFS_VERSION;
+		msg_header->version = MULTIFS_PROTO_VERSION;
 		msg_header->sequence = 1;
 		msg_header->payload = sizeof(multifs_command_remove_in);
 		multifs_command_remove_in *remove_in = (multifs_command_remove_in *)(p + sizeof(multifs_command_header));
@@ -452,10 +485,10 @@ int config_cache(size_t single_cache_size_n, char *cachepath) {
 		memset(p, 0, len + 1);
 
 		multifs_command_header *pmsg_header = (multifs_command_header*)p;
-		pmsg_header->command = NFS_COMMAND_CACHE;
+		pmsg_header->command = MFS_COMMAND_CACHE;
 		pmsg_header->magic = MULTIFS_HEADER_MAGIC;
 		pmsg_header->mode = OP_REQUEST;
-		pmsg_header->version = MULTIFS_VERSION;
+		pmsg_header->version = MULTIFS_PROTO_VERSION;
 		pmsg_header->sequence = 1;
 		pmsg_header->payload = sizeof(multifs_command_cache_in);
 
@@ -475,7 +508,7 @@ int config_cache(size_t single_cache_size_n, char *cachepath) {
 			break;
 		}
 		else {
-			if (cmd_header.command == NFS_COMMAND_OPEN) {
+			if (cmd_header.command == MFS_COMMAND_OPEN) {
 				iret = cmd_header.error;
 			}
 		}
@@ -508,10 +541,10 @@ int log_level(char *debug_mark) {
 		memset(p, 0, len + 1);
 
 		multifs_command_header *pmsg_header = (multifs_command_header*)p;
-		pmsg_header->command = NFS_COMMAND_LOG;
+		pmsg_header->command = MFS_COMMAND_LOG;
 		pmsg_header->magic = MULTIFS_HEADER_MAGIC;
 		pmsg_header->mode = OP_REQUEST;
-		pmsg_header->version = MULTIFS_VERSION;
+		pmsg_header->version = MULTIFS_PROTO_VERSION;
 		pmsg_header->sequence = 1;
 		pmsg_header->payload = sizeof(multifs_command_log_in);
 
@@ -530,7 +563,7 @@ int log_level(char *debug_mark) {
 			break;
 		}
 		else {
-			if (cmd_header.command == NFS_COMMAND_OPEN) {
+			if (cmd_header.command == MFS_COMMAND_OPEN) {
 				iret = cmd_header.error;
 			}
 		}

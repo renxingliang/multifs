@@ -92,22 +92,24 @@ int dspcmd(multifs_command_header *msg_header, unsigned char *data) {
 			break;
 		}
 
-		if (msg_header->command != NFS_COMMAND_CLOSE && 
-			msg_header->command != NFS_COMMAND_FLUSH && 
-			msg_header->command != NFS_COMMAND_STAT &&
+		if (msg_header->command != MFS_COMMAND_CLOSE && 
+			msg_header->command != MFS_COMMAND_FLUSH && 
+			msg_header->command != MFS_COMMAND_STAT &&
 			data == nullptr) {
 			break;
 		}
 
-		if (msg_header->command != NFS_COMMAND_OPEN &&
-			msg_header->command != NFS_COMMAND_REMOVE &&
+		if (msg_header->command != MFS_COMMAND_OPEN &&
+			msg_header->command != MFS_COMMAND_REMOVE &&
 			file == nullptr) {
 		}
 
 		msg_out = msg_header;
 
 		switch (msg_header->command) {
-		case NFS_COMMAND_OPEN: {
+		case MFS_COMMAND_OPEN: {
+			msg_out->payload = 0;
+
 			multifs_command_open_in *cmd_open = (multifs_command_open_in*)data;
 			get_tag_fs(cmd_open->filepath);
 			if (file == nullptr) {
@@ -118,56 +120,57 @@ int dspcmd(multifs_command_header *msg_header, unsigned char *data) {
 			file->config_cache(single_cache_size_m, cachepath);
 			file->log_level(debug_mark);
 			msg_out->error = file->open(cmd_open->mode, cmd_open->filepath);
-			msg_out->payload = 0;
 
 			break;
 		}
 
-		case NFS_COMMAND_CLOSE: {
+		case MFS_COMMAND_CLOSE: {
 			msg_out->error = file->close();
 			msg_out->payload = 0;
 
 			break;
 		}
 
-		case NFS_COMMAND_REMOVE: {
+		case MFS_COMMAND_REMOVE: {
+			msg_out->payload = 0;
+
 			multifs_command_remove_in *cmd_remove = (multifs_command_remove_in*)data;
 			get_tag_fs(cmd_remove->filepath);
 			if (file == nullptr) {
 				msg_out->error == -1;
 				break;
 			}
-
 			msg_out->error = file->remove(cmd_remove->filepath);
-			msg_out->payload = 0;
 
 			break;
 		}
 
-		case NFS_COMMAND_READ: {
+		case MFS_COMMAND_READ: {
+			msg_header->payload = 0;
+
 			multifs_command_read_in *cmd_read = (multifs_command_read_in*)data;
 			unsigned char* read_buffer = new(std::nothrow) unsigned char[cmd_read->size + 1];
 			if (read_buffer == nullptr) {
 				break;
 			}
 			memset(read_buffer, 0, cmd_read->size + 1);
-			int read_len = file->read((char*)read_buffer, cmd_read->size, cmd_read->offset);
-			if (read_len != 0) {
-				int len = cmd_read->size + sizeof(multifs_command_header);
+			printf("need read len %d\n", cmd_read->size);
+
+			size_t read_bytes = 0;
+			msg_header->error = file->read((char*)read_buffer, cmd_read->size, cmd_read->offset, &read_bytes);
+			if (msg_header->error == 0) {
+				int len = cmd_read->size + sizeof(multifs_command_header) + sizeof(multifs_command_read_out);
 				unsigned char* p = new(std::nothrow) unsigned char[len + 1];
 				if (p != nullptr) {
 					memset(p, 0, len + 1);
-					msg_header->payload = read_len;
-					msg_header->error = read_len;
+					msg_header->payload = cmd_read->size + sizeof(multifs_command_read_out);;
 					memcpy(p, msg_header, sizeof(multifs_command_header));
-					memcpy(p + sizeof(multifs_command_header), read_buffer, read_len);
-
+					multifs_command_read_out *pout = (multifs_command_read_out*)(p + sizeof(multifs_command_header));
+					pout->size = read_bytes;
+					memcpy(pout->buf, read_buffer, read_bytes);
+					printf("read data %s\n", pout->buf);
 					msg_out = (multifs_command_header*)p;
 				}
-			}
-			else {
-				msg_header->payload = 0;
-				msg_out->error = 0;
 			}
 
 			delete[] read_buffer;
@@ -177,23 +180,40 @@ int dspcmd(multifs_command_header *msg_header, unsigned char *data) {
 		}
 
 		// call flush after write
-		case NFS_COMMAND_WRITE: {
+		case MFS_COMMAND_WRITE: {
+			msg_header->payload = 0;
+
 			multifs_command_write_in *cmd_write = (multifs_command_write_in*)data;
-			msg_header->error = file->write(cmd_write->buf, cmd_write->size, cmd_write->offset);
-			msg_header->error = -msg_header->error;
-			msg_out->payload = 0;
+			size_t write_bytes = 0;
+			msg_header->error = file->write(cmd_write->buf, cmd_write->size, cmd_write->offset, &write_bytes);
+			if (msg_header->error == 0) {
+				break;
+			}
+
+			size_t len = sizeof(multifs_command_header) + sizeof(multifs_command_write_out);
+			unsigned char*p = new(std::nothrow) unsigned char[len + 1];
+			if (p == nullptr) {
+				break;
+			}
+
+			memset(p, 0, len + 1);
+			msg_header->payload = sizeof(multifs_command_write_out);
+			memcpy(p, msg_header, sizeof(multifs_command_header));
+			multifs_command_write_out *pout = (multifs_command_write_out*)(p + sizeof(multifs_command_header));
+			pout->size = write_bytes;
+			msg_out = (multifs_command_header*)p;
 
 			break;
 		}
 
-		case NFS_COMMAND_FLUSH: {
+		case MFS_COMMAND_FLUSH: {
 			msg_out->error = file->flush();
 			msg_out->payload = 0;
 
 			break;
 		}
 
-		case NTS_COMMAND_TRUNCATE: {
+		case MFS_COMMAND_TRUNCATE: {
 			multifs_command_truncate_in *cmd_truncat = (multifs_command_truncate_in*)data;
 			msg_out->error = file->truncate(cmd_truncat->size);
 			msg_out->payload = 0;
@@ -201,25 +221,41 @@ int dspcmd(multifs_command_header *msg_header, unsigned char *data) {
 			break;
 		}
 
-		case NFS_COMMAND_STAT: {
-			multifs_command_stat_out stat = { 0 };
-			msg_header->error = file->getstat(&stat.stbuf);
+		case MFS_COMMAND_STAT: {
+			printf("get cmd stat\n");
+			multifs_command_stat_in *cmd_truncat = (multifs_command_stat_in*)data;
+			get_tag_fs(cmd_truncat->filepath);
+			if (file == nullptr) {
+				msg_out->error == -1;
+				break;
+			}
 
+			msg_header->payload = 0;
+
+			printf("get stat success\n");
+			multifs_command_stat_out stat = { 0 };
+			msg_header->error = file->getstat(cmd_truncat->filepath, &stat.stbuf);
+			if (msg_out->error != 0) {
+				break;
+			}
+
+			printf("get stat success\n");
 			int len = sizeof(multifs_command_header) + sizeof(multifs_command_stat_out);
 			unsigned char *p = new(std::nothrow) unsigned char[len + 1];
 			if (p == nullptr) {
 				break;
 			}
-			memset(p, 0, len);
+			memset(p, 0, len + 1);
 
 			msg_header->payload = sizeof(multifs_command_stat_out);
 			memcpy(p, msg_header, sizeof(multifs_command_header));
 			memcpy(p + sizeof(multifs_command_header), &stat, sizeof(multifs_command_stat_out));
 			msg_out = (multifs_command_header*)p;
+			printf("get stat success\n");
 
 			break;
 		}
-		case NFS_COMMAND_CACHE: {
+		case MFS_COMMAND_CACHE: {
 			multifs_command_cache_in *config = (multifs_command_cache_in*)data;
 			single_cache_size_m = config->free_disk_size_m;
 			strcpy(cachepath, config->cachepath);
@@ -227,7 +263,7 @@ int dspcmd(multifs_command_header *msg_header, unsigned char *data) {
 			break;
 		}
 
-		case NFS_COMMAND_LOG: {
+		case MFS_COMMAND_LOG: {
 			multifs_command_log_in *log = (multifs_command_log_in *)data;
 			strcpy(debug_mark, log->debug_mark);
 			msg_out->payload = 0;
@@ -245,7 +281,7 @@ int dspcmd(multifs_command_header *msg_header, unsigned char *data) {
 
 	iret = msg_out->error;
 	if (msg_out != nullptr && 
-		(msg_out->command == NFS_COMMAND_STAT || (msg_out->command == NFS_COMMAND_READ && msg_out->payload != 0))) {
+		(msg_out->command == MFS_COMMAND_STAT || (msg_out->command == MFS_COMMAND_READ && msg_out->payload != 0))) {
 		delete[] msg_out;
 		msg_out = nullptr;
 	}
@@ -276,7 +312,7 @@ int main(int argc, char *argv[])
 			}
 
 			// check header
-			if (msg_header.version != MULTIFS_VERSION ||
+			if (msg_header.version != MULTIFS_PROTO_VERSION ||
 				msg_header.magic != MULTIFS_HEADER_MAGIC ||
 				msg_header.mode != OP_REQUEST) {
 				continue; 
@@ -307,9 +343,9 @@ int main(int argc, char *argv[])
 			}
 
 			// Delete is a separate file operation, so exit the child process after the operation is completed.
-			if (msg_header.command == NFS_COMMAND_CLOSE ||
-				msg_header.command == NFS_COMMAND_REMOVE ||
-				(msg_header.command == NFS_COMMAND_OPEN && iret != 0)) {
+			if (msg_header.command == MFS_COMMAND_CLOSE ||
+				msg_header.command == MFS_COMMAND_REMOVE ||
+				(msg_header.command == MFS_COMMAND_OPEN && iret != 0)) {
 				printf("get close event! %d\n", iret);
 				break;
 			}
