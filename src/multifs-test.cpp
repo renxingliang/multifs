@@ -85,7 +85,7 @@ int check_child_exist()
 
 int test_open(char *szpath, mode_t mode) {
 
-	int iret = -1;
+	int iret = 1;
 
 	do {
 		if (szpath == nullptr) {
@@ -137,7 +137,7 @@ int test_open(char *szpath, mode_t mode) {
 }
 
 int test_close() {
-	int iret = -1;
+	int iret = 1;
 
 	do {
 		if (check_child_exist() == -1) {
@@ -171,7 +171,7 @@ int test_close() {
 }
 
 int test_flush() {
-	int iret = -1;
+	int iret = 1;
 
 	do {
 		if (check_child_exist() == -1) {
@@ -204,7 +204,7 @@ int test_flush() {
 }
 
 int test_read(off_t offset, char* data, size_t size) {
-	int iret = -1;
+	int iret = 0;
 
 	do {
 		if (check_child_exist() == -1) {
@@ -247,14 +247,14 @@ int test_read(off_t offset, char* data, size_t size) {
 			break;
 		}
 
-		iret = cmd_header.payload;
+		iret = cmd_header.error;
 	} while (false);
 
 	return iret;
 }
 
 int test_write(off_t offset, char *data, size_t size) {
-	int iret = -1;
+	int iret = 0;
 
 	do {
 		if (check_child_exist() == -1) {
@@ -300,7 +300,7 @@ int test_write(off_t offset, char *data, size_t size) {
 }
 
 int test_truncate(size_t size) {
-	int iret = -1;
+	int iret = 1;
 
 	do {
 		if (check_child_exist() == -1) {
@@ -343,7 +343,7 @@ int test_truncate(size_t size) {
 }
 
 int test_stat() {
-	int iret = -1;
+	int iret = 1;
 
 	do {
 		if (check_child_exist() == -1) {
@@ -387,7 +387,7 @@ int test_stat() {
 }
 
 int test_remove(char *szpath) {
-	int iret = -1;
+	int iret = 1;
 
 	do {
 		if (check_child_exist() == -1) {
@@ -430,7 +430,7 @@ int test_remove(char *szpath) {
 }
 
 int config_cache(size_t single_cache_size_n, char *cachepath) {
-	int iret = -1;
+	int iret = 1;
 
 	do {
 		if (cachepath == nullptr) {
@@ -485,7 +485,7 @@ int config_cache(size_t single_cache_size_n, char *cachepath) {
 }
 
 int log_level(char *debug_mark) {
-	int iret = -1;
+	int iret = 1;
 
 	do {
 		if (debug_mark == nullptr) {
@@ -540,7 +540,7 @@ int log_level(char *debug_mark) {
 }
 
 int init() {
-	int iret = -1;
+	int iret = 1;
 	int fd[2] = { 0 };
 
 	do {

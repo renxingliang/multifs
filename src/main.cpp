@@ -167,7 +167,7 @@ int dspcmd(multifs_command_header *msg_header, unsigned char *data) {
 			}
 			else {
 				msg_header->payload = 0;
-				msg_out->error = -1;
+				msg_out->error = 0;
 			}
 
 			delete[] read_buffer;
