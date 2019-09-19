@@ -28,19 +28,19 @@ public:
 	// open the file
 	// [Note]
 	// filepath type: protocl://ak:sk@domain/bucket/[dir]/object
-	virtual int open(mode_t mode, char filepath[PATH_MAX]) = 0;
+	virtual int open(mode_t mode, char *filepath) = 0;
 
 	// close the file witch you openned
 	virtual int close() = 0;
 
 	// remove the target file
-	virtual int remove(char filepath[PATH_MAX]) = 0;
+	virtual int remove(char *filepath) = 0;
 
 	// flush file cache, this operate will push the cache data to net
 	virtual int flush() = 0;
 
 	// Get file attributes
-	virtual int getstat(char filepath[PATH_MAX], struct stat* stbuf) = 0;
+	virtual int getstat(char *filepath, struct stat* stbuf) = 0;
 
 	// shrink or extend the size of a file to the specified size
 	virtual int truncate(off_t size) = 0;

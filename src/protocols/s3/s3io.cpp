@@ -54,13 +54,17 @@ std::string S3Io::get_current_name() {
 	return name;
 }
 
-int S3Io::open(mode_t mode, char filepath[PATH_MAX]) {
+int S3Io::open(mode_t mode, char *filepath) {
 	int iret = -1;
 	char **args = nullptr;
 	int vecsize = 0;
 
 	do
 	{
+		if (filepath == nullptr) {
+			break;
+		}
+
 		file_info.flags = mode;
 
 		std::vector<std::string> vecret = split_path(filepath);
@@ -122,6 +126,7 @@ int S3Io::open(mode_t mode, char filepath[PATH_MAX]) {
 
 		iret = 0;
 		open_success = true;
+		printf("open success\n");
 	} while (false);
 
 	if (args != nullptr)
@@ -215,11 +220,15 @@ int S3Io::write(const char* buf, size_t size, off_t offset, size_t *write_bytes)
 	return iret;
 }
 
-int S3Io::remove(char filepath[PATH_MAX]) {
+int S3Io::remove(char *filepath) {
 	int iret = -1;
 
 	do {
 		if (!open_success) {
+			if (filepath == nullptr) {
+				break;
+			}
+
 			iret = open(0, filepath);
 			if (iret != 0) {
 				break;
@@ -245,11 +254,15 @@ int S3Io::flush() {
 	return s3fs_flush(object_name.c_str(), &file_info);
 }
 
-int S3Io::getstat(char filepath[PATH_MAX], struct stat* stbuf) {
+int S3Io::getstat(char *filepath, struct stat* stbuf) {
 	int iret = -1;
 
 	do {
 		if (!open_success) {
+			if (filepath == nullptr) {
+				break;
+			}
+
 			printf("file does not open\n");
 			iret = open(0, filepath);
 			if (iret != 0) {
@@ -257,6 +270,7 @@ int S3Io::getstat(char filepath[PATH_MAX], struct stat* stbuf) {
 			}
 		}
 
+		printf("bucket %s\n", object_name.c_str());
 		iret = s3fs_getattr(object_name.c_str(), stbuf);
 
 		// Match open operation

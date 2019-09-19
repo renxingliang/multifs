@@ -23,7 +23,7 @@ SmbIo::~SmbIo()
 {
 }
 
-int SmbIo::open(mode_t mode, char filepath[PATH_MAX]) {
+int SmbIo::open(mode_t mode, char *filepath) {
 	return 0;
 }
 
@@ -32,7 +32,7 @@ int SmbIo::close() {
 }
 
 
-int SmbIo::remove(char filepath[PATH_MAX])
+int SmbIo::remove(char *filepath)
 {
 	return 0;
 }
@@ -42,7 +42,7 @@ int SmbIo::flush()
 	return 0;
 }
 
-int SmbIo::getstat(char filepath[PATH_MAX], struct stat * stbuf)
+int SmbIo::getstat(char *filepath, struct stat * stbuf)
 {
 	return 0;
 }

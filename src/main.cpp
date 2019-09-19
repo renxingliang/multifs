@@ -135,11 +135,14 @@ int dspcmd(multifs_command_header *msg_header, unsigned char *data) {
 			msg_out->payload = 0;
 
 			multifs_command_remove_in *cmd_remove = (multifs_command_remove_in*)data;
-			get_tag_fs(cmd_remove->filepath);
 			if (file == nullptr) {
-				msg_out->error == -1;
-				break;
+				get_tag_fs(cmd_remove->filepath);
+				if (file == nullptr) {
+					msg_out->error == -1;
+					break;
+				}
 			}
+
 			msg_out->error = file->remove(cmd_remove->filepath);
 
 			break;
@@ -224,10 +227,13 @@ int dspcmd(multifs_command_header *msg_header, unsigned char *data) {
 		case MFS_COMMAND_STAT: {
 			printf("get cmd stat\n");
 			multifs_command_stat_in *cmd_truncat = (multifs_command_stat_in*)data;
-			get_tag_fs(cmd_truncat->filepath);
+
 			if (file == nullptr) {
-				msg_out->error == -1;
-				break;
+				get_tag_fs(cmd_truncat->filepath);
+				if (file == nullptr) {
+					msg_out->error == -1;
+					break;
+				}
 			}
 
 			msg_header->payload = 0;

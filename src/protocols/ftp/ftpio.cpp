@@ -15,7 +15,7 @@
 
 #include "ftpio.h"
 
-int FtpIo::open(mode_t mode, char filepath[PATH_MAX]){
+int FtpIo::open(mode_t mode, char *filepath){
 	return 0;
 }
 
@@ -23,7 +23,7 @@ int FtpIo::close(){
 	return 0;
 }
 
-int FtpIo::remove(char filepath[PATH_MAX])
+int FtpIo::remove(char *filepath)
 {
 	return 0;
 }
@@ -33,7 +33,7 @@ int FtpIo::flush() {
 	return 0;
 }
 
-int FtpIo::getstat(char filepath[PATH_MAX], struct stat * stbuf)
+int FtpIo::getstat(char *filepath, struct stat * stbuf)
 {
 	return 0;
 }
