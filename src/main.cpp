@@ -186,7 +186,7 @@ int dspcmd(multifs_command_header *msg_header, unsigned char *data) {
 			multifs_command_write_in *cmd_write = (multifs_command_write_in*)data;
 			size_t write_bytes = 0;
 			msg_header->error = file->write(cmd_write->buf, cmd_write->size, cmd_write->offset, &write_bytes);
-			if (msg_header->error == 0) {
+			if (msg_header->error != 0) {
 				break;
 			}
 

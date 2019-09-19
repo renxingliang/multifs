@@ -184,7 +184,6 @@ int S3Io::read(char* buf, size_t size, off_t offset, size_t *read_bytes) {
 			break;
 		}
 
-		printf("begin s3fs_read offset %d buffer %d\n", offset, size);
 		iret = s3fs_read(object_name.c_str(), buf, size, offset, &file_info, read_bytes);
 	} while (false);
 
@@ -259,7 +258,6 @@ int S3Io::flush() {
 int S3Io::getstat(char filepath[PATH_MAX], struct stat* stbuf) {
 	int iret = -1;
 
-	printf("s3io getstat\n");
 	do {
 		if (!open_success) {
 			printf("file does not open\n");
@@ -277,7 +275,6 @@ int S3Io::getstat(char filepath[PATH_MAX], struct stat* stbuf) {
 		}
 	} while (false);
 
-	printf("get stat result %d\n", iret);
 	return iret;
 }
 
