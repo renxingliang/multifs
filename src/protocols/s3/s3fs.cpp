@@ -2096,6 +2096,8 @@ static int s3fs_utimens_nocopy(const char* _path, const struct timespec ts[2])
 
 int s3fs_truncate(const char* _path, off_t size)
 {
+	printf("s3fs_truncate\n");
+
 	WTF8_ENCODE(path)
 		int result;
 	headers_t meta;

@@ -111,24 +111,14 @@ int S3Io::open(mode_t mode, char filepath[PATH_MAX]) {
 			break;
 		}
 
-		strcpy(file_path, filepath);
-		if ((file_info.flags&O_TRUNC) == O_TRUNC) {
-			iret = truncate(0);
-			if (iret != 0) {
-				iret = -1;
-				printf("truncate fail!\n");
-				break;
-			}
-		}
-
 		// If the file already exists, it cannot be overwritten.
-		if ((file_info.flags&O_CREAT) == O_CREAT &&
-			(file_info.flags&O_EXCL) == O_EXCL) {
-			if (iret == 0) {
-				iret = -1;
-				break;
-			}
-		}
+// 		if ((file_info.flags&O_CREAT) == O_CREAT &&
+// 			(file_info.flags&O_EXCL) == O_EXCL) {
+// 			if (iret == 0) {
+// 				iret = -1;
+// 				break;
+// 			}
+// 		}
 
 		iret = 0;
 		open_success = true;
