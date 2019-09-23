@@ -623,15 +623,13 @@ string mybasename(const string& path)
 // mkdir --parents
 int mkdirp(const string& path, mode_t mode)
 {
-	printf("mkdirp %s\n", path.c_str());
-
 	string        base;
 	string        component;
 	istringstream ss(path);
 	while (getline(ss, component, '/')) {
 		base += "/" + component;
 
-		struct stat st;
+		struct stat st; 
 		if (0 == stat(base.c_str(), &st)) {
 			if (!S_ISDIR(st.st_mode)) {
 				return EPERM;
@@ -715,6 +713,7 @@ bool check_exist_dir_permission(const char* dirpath)
 			}
 		}
 	}
+
 	return true;
 }
 

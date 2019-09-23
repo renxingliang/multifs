@@ -903,7 +903,7 @@ int s3fs_getattr(const char* _path, struct stat* stbuf)
 	return result;
 }
 
-static int s3fs_readlink(const char* _path, char* buf, size_t size)
+static int s3fs_readlink(const char* _path, char* buf, size_t size, size_t *read_bytes)
 {
 	if (!_path || !buf || 0 == size) {
 		return 0;
@@ -927,7 +927,7 @@ static int s3fs_readlink(const char* _path, char* buf, size_t size)
 	}
 	// Read
 	ssize_t ressize;
-	if (0 > (ressize = ent->Read(buf, 0, readsize))) {
+	if (0 > (ressize = ent->Read(buf, 0, readsize, read_bytes))) {
 		S3FS_PRN_ERR("could not read file(file=%s, ressize=%jd)", path, (intmax_t)ressize);
 		FdManager::get()->Close(ent);
 		return static_cast<int>(ressize);
@@ -1230,7 +1230,7 @@ static int s3fs_rmdir(const char* _path)
 	return result;
 }
 
-static int s3fs_symlink(const char* _from, const char* _to)
+static int s3fs_symlink(const char* _from, const char* _to, size_t *read_bytes)
 {
 	WTF8_ENCODE(from)
 		WTF8_ENCODE(to)
@@ -1270,7 +1270,7 @@ static int s3fs_symlink(const char* _from, const char* _to)
 	// write(without space words)
 	string  strFrom = trim(string(from));
 	ssize_t from_size = static_cast<ssize_t>(strFrom.length());
-	if (from_size != ent->Write(strFrom.c_str(), 0, from_size)) {
+	if (from_size != ent->Write(strFrom.c_str(), 0, from_size, read_bytes)) {
 		S3FS_PRN_ERR("could not write tmpfile(errno=%d)", errno);
 		FdManager::get()->Close(ent);
 		return -errno;
@@ -2096,6 +2096,8 @@ static int s3fs_utimens_nocopy(const char* _path, const struct timespec ts[2])
 
 int s3fs_truncate(const char* _path, off_t size)
 {
+	printf("s3fs_truncate\n");
+
 	WTF8_ENCODE(path)
 		int result;
 	headers_t meta;
@@ -2188,10 +2190,17 @@ int s3fs_open(const char* _path, struct fuse_file_info* fi, mode_t mode)
 		return result;
 	}
 
-	st.st_mode = mode;
 	result = check_object_access(path, mask, &st);
 	if (-ENOENT == result) {
+		// If there is not a target file, this function returns -ENOENT.
+		// You can return error
+
+		if ((mode&O_CREAT) != O_CREAT) {
+			return result;
+		}
+
 		if (0 != (result = check_parent_object_access(path, W_OK))) {
+
 			return result;
 		}
 	}
@@ -2233,7 +2242,7 @@ int s3fs_open(const char* _path, struct fuse_file_info* fi, mode_t mode)
 	return 0;
 }
 
-int s3fs_read(const char* _path, char* buf, size_t size, off_t offset, struct fuse_file_info* fi)
+int s3fs_read(const char* _path, char* buf, size_t size, off_t offset, struct fuse_file_info* fi, size_t *read_bytes)
 {
 	WTF8_ENCODE(path)
 		ssize_t res;
@@ -2258,7 +2267,7 @@ int s3fs_read(const char* _path, char* buf, size_t size, off_t offset, struct fu
 		return 0;
 	}
 
-	if (0 > (res = ent->Read(buf, offset, size, false))) {
+	if (0 > (res = ent->Read(buf, offset, size, read_bytes, false))) {
 		S3FS_PRN_WARN("failed to read file(%s). result=%jd", path, (intmax_t)res);
 	}
 
@@ -2267,7 +2276,7 @@ int s3fs_read(const char* _path, char* buf, size_t size, off_t offset, struct fu
 	return static_cast<int>(res);
 }
 
-int s3fs_write(const char* _path, const char* buf, size_t size, off_t offset, struct fuse_file_info* fi)
+int s3fs_write(const char* _path, const char* buf, size_t size, off_t offset, struct fuse_file_info* fi, size_t *write_bytes)
 {
 	WTF8_ENCODE(path)
 		ssize_t res;
@@ -2284,7 +2293,7 @@ int s3fs_write(const char* _path, const char* buf, size_t size, off_t offset, st
 		S3FS_PRN_WARN("different fd(%d - %llu)", ent->GetFd(), (unsigned long long)(fi->fh));
 	}
 
-	if (0 > (res = ent->Write(buf, offset, size))) {
+	if (0 > (res = ent->Write(buf, offset, size, write_bytes))) {
 		S3FS_PRN_WARN("failed to write file(%s). result=%jd", path, (intmax_t)res);
 	}
 	FdManager::get()->Close(ent);
@@ -5255,7 +5264,6 @@ int init(int argc, char* argv[])
 	// should have been set
 	// 将这里改写为一个以循环，调用my_fuse_opt_proc， 每次传入一个参数。
 	for (int i = 1; i < argc; i++) {
-		printf("weses %s\n", argv[i]);
 		if (my_fuse_opt_proc(argv[i])) {
 			S3fsCurl::DestroyS3fsCurl();
 			s3fs_destroy_global_ssl();
@@ -5298,7 +5306,6 @@ int init(int argc, char* argv[])
 	}
 
 	// check bucket name for illegal characters
-	printf("bucket_name:%s\n", bucket.c_str());
 	found = bucket.find_first_of("/:\\;!@#$%^&*?|+=");
 	if (found != string::npos) {
 		S3FS_PRN_EXIT("BUCKET %s -- bucket name contains an illegal character.", bucket.c_str());
@@ -5458,7 +5465,6 @@ int uninit() {
 	xmlCleanupParser();
 	S3FS_MALLOCTRIM(0);
 
-	printf("begin s3fs_destory\n");
 	s3fs_destroy(NULL);
 
 	return EXIT_SUCCESS;

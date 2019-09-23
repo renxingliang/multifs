@@ -174,8 +174,8 @@ public:
 	int RowFlush(const char* tpath, bool force_sync = false);
 	int Flush(bool force_sync = false) { return RowFlush(NULL, force_sync); }
 
-	ssize_t Read(char* bytes, off_t start, size_t size, bool force_load = false);
-	ssize_t Write(const char* bytes, off_t start, size_t size);
+	ssize_t Read(char* bytes, off_t start, size_t size, size_t *read_bytes, bool force_load = false);
+	ssize_t Write(const char* bytes, off_t start, size_t size, size_t *write_bytes);
 
 	bool ReserveDiskSpace(off_t size);
 	void CleanupCache();

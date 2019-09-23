@@ -1664,7 +1664,7 @@ bool FdEntity::ReserveDiskSpace(off_t size)
 	return FdManager::get()->ReserveDiskSpace(size);
 }
 
-ssize_t FdEntity::Read(char* bytes, off_t start, size_t size, bool force_load)
+ssize_t FdEntity::Read(char* bytes, off_t start, size_t size, size_t *read_bytes, bool force_load)
 {
 	S3FS_PRN_DBG("[path=%s][fd=%d][offset=%lld][size=%zu]", path.c_str(), fd, static_cast<long long int>(start), size);
 
@@ -1676,8 +1676,6 @@ ssize_t FdEntity::Read(char* bytes, off_t start, size_t size, bool force_load)
 	if (force_load) {
 		pagelist.SetPageLoadedStatus(start, size, false);
 	}
-
-	ssize_t rsize;
 
 	// check disk space
 	if (0 < pagelist.GetTotalUnloadedPageSize(start, size)) {
@@ -1718,15 +1716,16 @@ ssize_t FdEntity::Read(char* bytes, off_t start, size_t size, bool force_load)
 	}
 	
 	// Reading
-	if (-1 == (rsize = pread(fd, bytes, size, start))) {
+	if (-1 == (*read_bytes = pread(fd, bytes, size, start))) {
 		S3FS_PRN_ERR("pread failed. errno(%d)", errno);
+		*read_bytes = 0;
 		return -errno;
 	}
 
-	return rsize;
+	return 0;
 }
 
-ssize_t FdEntity::Write(const char* bytes, off_t start, size_t size)
+ssize_t FdEntity::Write(const char* bytes, off_t start, size_t size, size_t *write_size)
 {
 	S3FS_PRN_DBG("[path=%s][fd=%d][offset=%lld][size=%zu]", path.c_str(), fd, static_cast<long long int>(start), size);
 
@@ -1751,8 +1750,6 @@ ssize_t FdEntity::Write(const char* bytes, off_t start, size_t size)
 	}
 
 	int     result = 0;
-	ssize_t wsize;
-
 	if (0 == upload_id.length()) {
 		// check disk space
 		off_t restsize = pagelist.GetTotalUnloadedPageSize(0, start) + size;
@@ -1789,13 +1786,16 @@ ssize_t FdEntity::Write(const char* bytes, off_t start, size_t size)
 	}
 
 	// Writing
-	if (-1 == (wsize = pwrite(fd, bytes, size, start))) {
+	if (-1 == (*write_size = pwrite(fd, bytes, size, start))) {
 		S3FS_PRN_ERR("pwrite failed. errno(%d)", errno);
+		*write_size = 0;
 		return -errno;
 	}
 	if (!is_modify) {
 		is_modify = true;
 	}
+
+	ssize_t wsize = *write_size;
 	if (0 < wsize) {
 		pagelist.SetPageLoadedStatus(start, wsize, true);
 	}
@@ -1830,7 +1830,7 @@ ssize_t FdEntity::Write(const char* bytes, off_t start, size_t size)
 			mp_size = 0;
 		}
 	}
-	return wsize;
+	return result;
 }
 
 void FdEntity::CleanupCache()
@@ -2036,6 +2036,7 @@ bool FdManager::CheckCacheDirExist()
 		S3FS_PRN_ERR("the cache directory(%s) is not directory.", cache_dir.c_str());
 		return false;
 	}
+
 	return true;
 }
 

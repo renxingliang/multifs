@@ -23,7 +23,7 @@ SmbIo::~SmbIo()
 {
 }
 
-int SmbIo::open(mode_t mode, char filepath[PATH_MAX]) {
+int SmbIo::open(mode_t mode, char *filepath) {
 	return 0;
 }
 
@@ -32,7 +32,7 @@ int SmbIo::close() {
 }
 
 
-int SmbIo::remove(char filepath[PATH_MAX])
+int SmbIo::remove(char *filepath)
 {
 	return 0;
 }
@@ -42,7 +42,7 @@ int SmbIo::flush()
 	return 0;
 }
 
-int SmbIo::getstat(struct stat * stbuf)
+int SmbIo::getstat(char *filepath, struct stat * stbuf)
 {
 	return 0;
 }
@@ -52,12 +52,25 @@ int SmbIo::truncate(off_t size)
 	return 0;
 }
 
-int SmbIo::read(char * buf, size_t size, off_t offset)
+int SmbIo::read(char * buf, size_t size, off_t offset, size_t *read_bytes)
 {
 	return 0;
 }
 
-int SmbIo::write(const char * buf, size_t size, off_t offset)
+int SmbIo::write(const char * buf, size_t size, off_t offset, size_t *write_bytes)
 {
+	return 0;
+}
+
+int SmbIo::config_cache(size_t single_cache_size_m, char *pcachepath) {
+	single_cache_size_m = single_cache_size_m;
+	if (pcachepath != nullptr) {
+		cachepath = pcachepath;
+	}
+
+	return 0;
+}
+
+int SmbIo::log_level(char *log_mark) {
 	return 0;
 }

@@ -14,6 +14,7 @@
 
 
 #pragma once
+#include <string>
 
 #include "../../ifile.h"
 #include <stdint.h>
@@ -22,12 +23,17 @@ class FtpIo:
 	public IFile
 {
 public:
-	virtual int open(mode_t mode, char filepath[PATH_MAX]);
+	virtual int open(mode_t mode, char *filepath);
 	virtual int close();
-	virtual int remove(char filepath[PATH_MAX]);
+	virtual int remove(char *filepath);
 	virtual int flush();
-	virtual int getstat(struct stat* stbuf);
+	virtual int getstat(char *filepath, struct stat* stbuf);
 	virtual int truncate(off_t size);
-	virtual int read(char* buf, size_t size, off_t offset);
-	virtual int write(const char* buf, size_t size, off_t offset);
+	virtual int read(char* buf, size_t size, off_t offset, size_t *read_bytes);
+	virtual int write(const char* buf, size_t size, off_t offset, size_t *write_bytes);
+	virtual int config_cache(size_t single_cache_size_n, char *cachepath);
+	virtual int log_level(char *log_mark);
+private:
+	size_t single_cache_size_m;
+	std::string cachepath;
 };

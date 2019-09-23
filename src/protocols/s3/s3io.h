@@ -29,21 +29,29 @@ public:
 	S3Io();
 	~S3Io();
 
-	virtual int open(mode_t mode, char filepath[PATH_MAX]);
+	virtual int open(mode_t mode, char *filepath);
 	virtual int close();
-	virtual int remove(char filepath[PATH_MAX]);
+	virtual int remove(char *filepath);
 	virtual int flush();
-	virtual int getstat(struct stat* stbuf);
+	virtual int getstat(char *filepath, struct stat* stbuf);
 	virtual int truncate(off_t size);
-	virtual int read(char* buf, size_t size, off_t offset);
-	virtual int write(const char* buf, size_t size, off_t offset);
+	virtual int read(char* buf, size_t size, off_t offset, size_t *read_bytes);
+	virtual int write(const char* buf, size_t size, off_t offset, size_t *write_bytes);
+	virtual int config_cache(size_t single_cache_size_n, char *cachepath);
+	virtual int log_level(char *log_mark);
 
 private:
 	std::vector<std::string> split_path(std::string path);
+	std::string get_current_name();
 
 private:
+	bool is_first_write;		// 
+	bool open_success;			//
 	fuse_file_info file_info;	// opened file infor
 	char file_path[PATH_MAX];	// saved full file path
 	std::string object_name;	// saved object name
 	fuse_conn_info conn_info;	//
+	size_t single_cache_size_m;	// single cache size
+	std::string cachepath;		// cache path
+	std::string debug_mark;		// info or debug or trace
 };
