@@ -332,13 +332,19 @@ int main(int argc, char *argv[])
 					break;
 				}
 
+				printf("main payload %d\n", msg_header.payload);
 				memset(pbuffer, 0, msg_header.payload + 1);
-				read_bytes = read(socket_child, pbuffer, msg_header.payload);
-				if (read_bytes == -1) {
-					delete pbuffer;
-					pbuffer = nullptr;
-					break;
-				}				
+				size_t all_len = 0;
+				while (all_len < msg_header.payload) {
+					read_bytes = read(socket_child, pbuffer + all_len, msg_header.payload - all_len);
+					if (read_bytes == -1) {
+						delete pbuffer;
+						pbuffer = nullptr;
+						break;
+					}
+
+					all_len += read_bytes;
+				}			
 			}
 
 			// dispatch option

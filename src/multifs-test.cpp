@@ -252,10 +252,17 @@ int test_read(off_t offset, char* data, size_t size) {
 		}
 		std::auto_ptr<unsigned char> tmp_buf(data_buffer);
 		memset(data_buffer, 0, cmd_header.payload + 1);
-		readlen = read(socket_par, data_buffer, cmd_header.payload);
-		if (readlen == -1) {
-			break;
+
+		size_t all_len = 0;
+		while (all_len < cmd_header.payload) {
+			readlen = read(socket_par, data_buffer + all_len, cmd_header.payload - all_len);
+			if (readlen == -1) {
+				break;
+			}
+
+			all_len += readlen;
 		}
+
 		multifs_command_read_out *read_out = (multifs_command_read_out *)data_buffer;
 		memcpy(data, read_out->buf, read_out->size);
 
@@ -288,7 +295,7 @@ int test_write(off_t offset, char *data, size_t size) {
 		msg_header->mode = OP_REQUEST;
 		msg_header->version = MULTIFS_PROTO_VERSION;
 		msg_header->sequence = 1;
-		msg_header->payload = sizeof(multifs_command_write_in) + strlen(data);
+		msg_header->payload = sizeof(multifs_command_write_in) + size;
 		multifs_command_write_in *write_in = (multifs_command_write_in *)(p + sizeof(multifs_command_header));
 		write_in->offset = offset;
 		write_in->size = size;
