@@ -119,7 +119,25 @@ int dspcmd(multifs_command_header *msg_header, unsigned char *data) {
 
 			file->config_cache(single_cache_size_m, cachepath);
 			file->log_level(debug_mark);
-			msg_out->error = file->open(cmd_open->mode, cmd_open->filepath);
+
+			size_t file_size = 0;
+			msg_out->error = file->open(cmd_open->mode, cmd_open->filepath, &file_size);
+			if (msg_header->error != 0) {
+				break;
+			}
+
+			size_t len = sizeof(multifs_command_header) + sizeof(multifs_command_open_out);
+			unsigned char*p = new(std::nothrow) unsigned char[len + 1];
+			if (p == nullptr) {
+				break;
+			}
+
+			memset(p, 0, len + 1);
+			msg_header->payload = sizeof(multifs_command_open_out);
+			memcpy(p, msg_header, sizeof(multifs_command_header));
+			multifs_command_open_out *pout = (multifs_command_open_out*)(p + sizeof(multifs_command_header));
+			pout->size = file_size;
+			msg_out = (multifs_command_header*)p;
 
 			break;
 		}

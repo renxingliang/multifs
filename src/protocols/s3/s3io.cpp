@@ -54,7 +54,7 @@ std::string S3Io::get_current_name() {
 	return name;
 }
 
-int S3Io::open(mode_t mode, char *filepath) {
+int S3Io::open(mode_t mode, char *filepath, size_t *file_size) {
 	int iret = -1;
 	char **args = nullptr;
 	int vecsize = 0;
@@ -115,14 +115,12 @@ int S3Io::open(mode_t mode, char *filepath) {
 			break;
 		}
 
-		// If the file already exists, it cannot be overwritten.
-// 		if ((file_info.flags&O_CREAT) == O_CREAT &&
-// 			(file_info.flags&O_EXCL) == O_EXCL) {
-// 			if (iret == 0) {
-// 				iret = -1;
-// 				break;
-// 			}
-// 		}
+		struct stat stbuf = { 0 };
+		iret = s3fs_getattr(object_name.c_str(), &stbuf);
+		if (iret != 0) {
+			break;
+		}
+		*file_size = stbuf.st_size;
 
 		iret = 0;
 		open_success = true;
@@ -229,7 +227,8 @@ int S3Io::remove(char *filepath) {
 				break;
 			}
 
-			iret = open(0, filepath);
+			size_t file_size = 0;
+			iret = open(0, filepath, &file_size);
 			if (iret != 0) {
 				break;
 			}
@@ -264,7 +263,8 @@ int S3Io::getstat(char *filepath, struct stat* stbuf) {
 			}
 
 			printf("file does not open\n");
-			iret = open(0, filepath);
+			size_t file_size = 0;
+			iret = open(0, filepath, &file_size);
 			if (iret != 0) {
 				break;
 			}

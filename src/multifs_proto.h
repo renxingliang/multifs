@@ -73,6 +73,10 @@ typedef struct _multifs_command_open_in {
 	char filepath[PATH_MAX];
 } multifs_command_open_in;
 
+typedef struct _multifs_command_open_out {
+	size_t size;
+} multifs_command_open_out;
+
 typedef struct _multifs_command_remove_in {
 	char filepath[PATH_MAX];
 } multifs_command_remove_in;

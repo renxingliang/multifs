@@ -114,7 +114,6 @@ int test_open(char *szpath, mode_t mode) {
 		pmsg_header->sequence = 1;
 		pmsg_header->payload = sizeof(multifs_command_open_in);
 
-		//char szpath[] = "s3://AKIDe8NsCLD0TkJh5DDuNbdT3wiIfmeK5LRH:qRmsmUH5jCZhaOyJQH0Ui5JLBZlkZBYk@cos.ap-chengdu.myqcloud.com/test-1259750376/123";
 		multifs_command_open_in *ppayload = (multifs_command_open_in*)(p + sizeof(multifs_command_header));
 		ppayload->mode = mode;
 		strcpy(ppayload->filepath, szpath);
@@ -133,6 +132,17 @@ int test_open(char *szpath, mode_t mode) {
 		else {
 			if (cmd_header.command == MFS_COMMAND_OPEN) {
 				iret = cmd_header.error;
+			}
+
+			if (cmd_header.payload != 0)
+			{
+				multifs_command_write_out write_out = { 0 };
+				readlen = read(socket_par, &write_out, sizeof(multifs_command_write_out));
+				if (readlen == -1) {
+					break;
+				}
+
+				printf("file exist, file len %d\n", write_out.size);
 			}
 		}
 	} while (false);

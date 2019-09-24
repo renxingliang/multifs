@@ -23,7 +23,7 @@ SmbIo::~SmbIo()
 {
 }
 
-int SmbIo::open(mode_t mode, char *filepath) {
+int SmbIo::open(mode_t mode, char *filepath, size_t *file_size) {
 	return 0;
 }
 

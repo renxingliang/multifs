@@ -28,7 +28,7 @@ public:
 	// open the file
 	// [Note]
 	// filepath type: protocl://ak:sk@domain/bucket/[dir]/object
-	virtual int open(mode_t mode, char *filepath) = 0;
+	virtual int open(mode_t mode, char *filepath, size_t *file_size) = 0;
 
 	// close the file witch you openned
 	virtual int close() = 0;

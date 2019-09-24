@@ -29,7 +29,7 @@ public:
 	S3Io();
 	~S3Io();
 
-	virtual int open(mode_t mode, char *filepath);
+	virtual int open(mode_t mode, char *filepath, size_t *file_size);
 	virtual int close();
 	virtual int remove(char *filepath);
 	virtual int flush();
