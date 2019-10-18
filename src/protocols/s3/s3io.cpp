@@ -73,6 +73,7 @@ int S3Io::open(mode_t mode, char *filepath, size_t *file_size) {
 		vecret.push_back("del_cache");						// allow delete cache
 		vecret.push_back("-f");
 		vecret.push_back("connect_timeout=30");
+		vecret.push_back("use_path_request_style");
 		vecret.push_back("readwrite_timeout=30");
 		vecret.push_back(cachepath.size() != 0 ? std::string("use_cache=") + cachepath : "use_cache=/tmp");
 		vecret.push_back(single_cache_size_m != 0 ? std::string("ensure_diskfree=") + std::to_string(single_cache_size_m) : "ensure_diskfree=4096");
