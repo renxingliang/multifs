@@ -74,6 +74,7 @@ int S3Io::open(mode_t mode, char *filepath, size_t *file_size) {
 		vecret.push_back("-f");
 		vecret.push_back("connect_timeout=30");
 		vecret.push_back("no_check_certificate");
+		vecret.push_back("ssl_verify_hostname=0");
 		vecret.push_back("use_path_request_style");
 		vecret.push_back("readwrite_timeout=30");
 		vecret.push_back(cachepath.size() != 0 ? std::string("use_cache=") + cachepath : "use_cache=/tmp");
